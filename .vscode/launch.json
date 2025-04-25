@@ -1,0 +1,32 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32L431RC Launch",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceRoot}/build/stm32l4xx.elf",
+            "device": "STM32L431RC",
+            "interface": "swd",
+            "svdFile": "${workspaceRoot}/tools/svd/STM32L4x1.svd",
+            "runToEntryPoint": "Reset_Handler",
+        },
+        {
+            "name": "STM32L431RC Attach",
+            "type": "cortex-debug",
+            "request": "attach",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceRoot}/build/stm32l4xx.elf",
+            "device": "STM32L431RC",
+            "interface": "swd",
+            "svdFile": "${workspaceRoot}/tools/svd/STM32L4x1.svd",
+            "runToEntryPoint": "Reset_Handler",
+        }
+    ]
+}
