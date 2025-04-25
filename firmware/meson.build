@@ -6,14 +6,17 @@ firmware_c_args = [
 
 # 包含目录
 firmware_incdirs = include_directories(
+  'CubeMX/Core/Inc',
   'CMSIS/Include',
   'CMSIS/Device/ST/STM32L4xx/Include',
   'STM32L4xx_HAL_Driver/Inc',
-    'STM32L4xx_HAL_Driver/Inc/Legacy',
+  'STM32L4xx_HAL_Driver/Inc/Legacy',
 )
 
 # 源文件列表初始化
 firmware_sources = files(
+  'CubeMX/Core/Src/main.c',
+  'CubeMX/Core/Src/stm32l4xx_hal_msp.c',
   'CMSIS/Device/ST/STM32L4xx/Source/Templates/system_stm32l4xx.c',
   'CMSIS/Device/ST/STM32L4xx/Source/Templates/gcc/startup_stm32l431xx.s',
 )
@@ -122,9 +125,7 @@ firmware_sources += files(
   'STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_tim.c',
   'STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_usart.c',
   'STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_usb.c',
-  'STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_utils.c',
-  'STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_msp.c',
-  
+  'STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_utils.c', 
 )
 
 # 条件包含 USB Device 库

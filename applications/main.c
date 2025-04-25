@@ -3,7 +3,7 @@
 #include "drv_gpio.h"
 #include <stdio.h>
 
-#define RUN_LED GET_PIN(A, 8) // Define the pin for the LED
+#define RUN_LED GET_PIN(C, 6) // Define the pin for the LED
 
 int main(void)
 {

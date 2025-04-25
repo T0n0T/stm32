@@ -1,4 +1,4 @@
 h
-loadfile n32l40x.hex
+loadfile stm32l4xx.hex
 r
 q

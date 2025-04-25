@@ -1,6 +1,10 @@
 # project out
 build
 
+firmware/CubeMX/*
+!firmware/CubeMX/Core
+!firmware/CubeMX/stm32l431xx.ioc
+
 **/JLinkLog.txt
 **/JLinkSettings.ini
 

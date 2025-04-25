@@ -69,17 +69,19 @@ stm32l4xx_elf = executable('stm32l4xx',
     drivers_sources,
     rtos_sources,
     appdep_sources,
+    firmware_sources,
   ],
   include_directories: [
     applications_incdirs,
     drivers_incdirs,
     rtos_incdirs,
     appdep_incdirs, 
+    firmware_incdirs,
   ],
-  dependencies: [
-    firmware_dep,  # 使用 firmware 模块的依赖声明
-  ],
-  c_args: c_args + rtos_c_args,
+  # dependencies: [
+  #   firmware_dep,  # 使用 firmware 模块的依赖声明
+  # ],
+  c_args: c_args + rtos_c_args + firmware_c_args,
   link_args: link_args,
   name_suffix: 'elf'
 )
