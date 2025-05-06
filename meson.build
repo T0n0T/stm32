@@ -44,6 +44,7 @@ link_args = [
 # 包含子目录构建脚本
 subdir('firmware')
 subdir('applications')
+subdir('drivers')
 subdir('middlewares/qpc')
 subdir('middlewares/cm_backtrace')
 subdir('middlewares/easylogger')
@@ -66,11 +67,13 @@ stm32l4xx_elf = executable('stm32l4xx',
   sources: [ 
     applications_sources,
     appdep_sources,
+    drivers_sources,
     firmware_sources,
   ],
   include_directories: [
     applications_incdirs,
-    appdep_incdirs, 
+    appdep_incdirs,
+    drivers_incdirs,
     firmware_incdirs,
   ],
   # dependencies: [

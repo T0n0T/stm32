@@ -18,8 +18,8 @@ STDIO_ALIAS(stderr);
 
 static int __fputc(char c, FILE* file)
 {
-    while ((USART1->ISR & 0X80) == 0);
     USART1->TDR = (uint8_t)c;
+    while ((USART1->ISR & UART_FLAG_TC) == RESET);
     return c;
 }
 
