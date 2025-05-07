@@ -1,21 +1,12 @@
 #include "board.h"
+#include "cm_backtrace.h"
 
 void board_init(void)
 {
     HAL_Init();
     extern void SystemClock_Config(void);
     SystemClock_Config();
-}
-
-void SysTick_Handler(void)
-{
-    /* USER CODE BEGIN SysTick_IRQn 0 */
-
-    /* USER CODE END SysTick_IRQn 0 */
-    HAL_IncTick();
-    /* USER CODE BEGIN SysTick_IRQn 1 */
-
-    /* USER CODE END SysTick_IRQn 1 */
+    cm_backtrace_init("STM32L4", "V1.0", "1.0.0");
 }
 
 void gpio_clk_init(GPIO_TypeDef* GPIOx)

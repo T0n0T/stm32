@@ -48,6 +48,7 @@ subdir('drivers')
 subdir('middlewares/qpc')
 subdir('middlewares/cm_backtrace')
 subdir('middlewares/easylogger')
+subdir('middlewares/MultiButton')
 
 appdep_incdirs = []
 appdep_sources = []
@@ -68,12 +69,16 @@ stm32l4xx_elf = executable('stm32l4xx',
     applications_sources,
     appdep_sources,
     drivers_sources,
+    qpc_sources,
+    btn_sources,
     firmware_sources,
   ],
   include_directories: [
     applications_incdirs,
     appdep_incdirs,
     drivers_incdirs,
+    qpc_incdirs,
+    btn_incdirs,
     firmware_incdirs,
   ],
   # dependencies: [

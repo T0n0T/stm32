@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stddef.h>
+#include <string.h>
 #include "stm32l4xx_hal.h"
 
 void gpio_clk_init(GPIO_TypeDef* GPIOx);

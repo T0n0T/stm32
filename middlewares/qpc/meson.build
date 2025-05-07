@@ -1,11 +1,11 @@
-qpc_inc = include_directories(
+qpc_incdirs = include_directories(
   'include',
   'ports/arm-cm/config',
   'ports/arm-cm/qv/gnu',
 )
 
 # QP 核心源文件
-qp_sources = files(
+qpc_sources = files(
   'src/qf/qep_hsm.c',
   'src/qf/qep_msm.c', 
   'src/qf/qf_act.c',

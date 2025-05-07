@@ -7,8 +7,10 @@
 #define RUN_LED_PIN  GPIO_PIN_4
 
 typedef enum led_index {
-    LED_RUN = 0,
-    LED_ERR,
+    LED_1 = 0,
+    LED_2,
+    LED_3,
+    LED_4,
     LED_MAX,
 } led_index_t;
 

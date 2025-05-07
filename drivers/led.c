@@ -5,7 +5,23 @@ static led_t leds[LED_MAX] = {
         .port         = GPIOC,
         .pin          = GPIO_PIN_6,
         .active_level = GPIO_PIN_RESET,
-    }};
+    },
+    {
+        .port         = GPIOC,
+        .pin          = GPIO_PIN_7,
+        .active_level = GPIO_PIN_RESET,
+    },
+    {
+        .port         = GPIOC,
+        .pin          = GPIO_PIN_8,
+        .active_level = GPIO_PIN_RESET,
+    },
+    {
+        .port         = GPIOC,
+        .pin          = GPIO_PIN_9,
+        .active_level = GPIO_PIN_RESET,
+    },
+};
 
 void led_init(void)
 {
@@ -17,6 +33,7 @@ void led_init(void)
         GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
         HAL_GPIO_Init(leds[i].port, &GPIO_InitStruct);
+        HAL_GPIO_WritePin(leds[i].port, leds[i].pin, !leds[i].active_level);
     }
 }
 
