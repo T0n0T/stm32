@@ -1,12 +1,11 @@
 #include "board.h"
-#include "cm_backtrace.h"
 
 void board_init(void)
 {
     HAL_Init();
     extern void SystemClock_Config(void);
     SystemClock_Config();
-    cm_backtrace_init("STM32L4", "V1.0", "1.0.0");
+    SystemCoreClockUpdate();
 }
 
 void gpio_clk_init(GPIO_TypeDef* GPIOx)

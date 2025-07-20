@@ -70,13 +70,15 @@ void BSP_init(void)
     /* NOTE: SystemInit() has been already called from the startup code
      *  but SystemCoreClock needs to be updated
      */
-    SystemCoreClockUpdate();
     cm_backtrace_init("STM32L4", "V1.0", "1.0.0");
+    board_init();
+    led_init();   /* initialize the LEDs */
+    usart_init(); /* initialize the USART */
     DBGMCU->CR |= DBGMCU_CR_TRACE_IOEN;
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    TPI->ACPR = 15; 
-    TPI->SPPR = 2;
-    TPI->FFCR = 0x100;
+    // TPI->ACPR = 12; 
+    // TPI->SPPR = 2;
+    // TPI->FFCR = 0x100;
     DWT->CTRL = (1 << DWT_CTRL_CYCTAP_Pos)       // Prescaler for PC sampling
                                                  // 0 = x64, 1 = x1024
                 | (0 << DWT_CTRL_POSTPRESET_Pos) // Postscaler for PC sampling
@@ -88,16 +90,15 @@ void BSP_init(void)
                 | (1 << DWT_CTRL_EXCTRCENA_Pos)  // Enable exception trace
                 | (1 << DWT_CTRL_CYCCNTENA_Pos); // Enable cycle counter
 
-    /* Configure instrumentation trace macroblock */
+    // /* Configure instrumentation trace macroblock */
     ITM->LAR = 0xC5ACCE55;
     ITM->TCR = (1 << ITM_TCR_TraceBusID_Pos) // Trace bus ID for TPIU
                | (1 << ITM_TCR_DWTENA_Pos)   // Enable events from DWT
                | (1 << ITM_TCR_SYNCENA_Pos)  // Enable sync packets
                | (1 << ITM_TCR_ITMENA_Pos);  // Main enable for ITM
     ITM->TER = 0xFFFFFFFF;                   // Enable all stimulus ports
-    HAL_Init();
-    led_init();   /* initialize the LEDs */
-    usart_init(); /* initialize the USART */
+    printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
+    ITM_SendChar('B'); // Send a character to ITM
 }
 
 void BSP_start(void)
