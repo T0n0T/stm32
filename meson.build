@@ -12,12 +12,17 @@ cross_file = 'tools/toolchains/arm-none-eabi-gcc.txt'
 # 全局编译参数
 c_args = [
   '-DUSE_HAL_DRIVER',
+  '-DTINY_STDIO',
   '-DSTM32L431xx',
   '-mcpu=cortex-m4',
   '-mthumb',
   '-mfpu=fpv4-sp-d16',
   '-mfloat-abi=hard',
   '-Wall',
+  '-finstrument-functions',
+  '-finstrument-functions-exclude-file-list=cmsis,qpc,cm_backtrace',
+  '-finstrument-functions-exclude-file-list=applications/main.c,applications/syscall.c',
+  '-fno-omit-frame-pointer',
   '-ffunction-sections',
   '-fdata-sections',
   '-specs=picolibc.specs',
@@ -49,6 +54,7 @@ subdir('middlewares/qpc')
 subdir('middlewares/cm_backtrace')
 subdir('middlewares/easylogger')
 subdir('middlewares/MultiButton')
+subdir('middlewares/trace')
 
 appdep_incdirs = []
 appdep_sources = []
@@ -57,7 +63,7 @@ appdep_sources = []
 if get_option('buildtype').startswith('debug')
   message('Use debug buildtype ' + get_option('buildtype'))
   appdep_sources += cmb_srcs
-  appdep_incdirs += cmb_incs
+  appdep_incdirs += [cmb_incs, trace_incdirs]
   c_args += '-DCM_BACKTRACE_ENABLE'  # 添加编译宏以启用相关代码
   c_args += '-DCMB_USER_CFG'
   c_args += '-DDEBUG'
@@ -91,6 +97,7 @@ stm32l4xx_elf = executable('stm32l4xx',
 
 # 配置objcopy工具
 objcopy = find_program('arm-none-eabi-objcopy')
+objdump = find_program('arm-none-eabi-objdump')
 # 根据操作系统选择JLink可执行文件名称
 
 jlink_exe = 'JLinkExe'
@@ -107,6 +114,14 @@ custom_target('hex',
   output: 'stm32l4xx.hex',
   command: [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
   build_by_default: true
+)
+
+run_target('disasm',
+  command: [
+    'sh', '-c',
+    objdump.full_path() + ' -d -S -l -C ' + stm32l4xx_elf.full_path() + ' > ' + 
+    meson.current_build_dir() / 'stm32l4xx.dis'
+  ]
 )
 
 # 添加下载目标

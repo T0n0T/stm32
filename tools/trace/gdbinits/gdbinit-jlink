@@ -1,0 +1,27 @@
+source tools/trace/gdbinits/gdbtrace.init
+target remote :2331
+set mem inaccessible-by-default off
+set print pretty
+load
+monitor reset  0
+
+# JLink GDB server native command to enable SWO
+# https://kb.segger.com/J-Link_GDB_Server#SWO_EnableTarget
+monitor SWO EnableTarget 80000000 0 0xFF 0
+
+dwtSyncTap 3
+dwtCycEna 1
+# dwtSamplePC 1
+# dwtPostTap 1
+# dwtPostInit 1
+# dwtPostReset 15
+
+ITMId 1
+ITMGTSFreq 3
+ITMTSPrescale 3
+ITMTXEna 1
+ITMSYNCEna 1
+ITMEna 1
+
+ITMTER 0 0xFFFFFFFF
+ITMTPR 0xFFFFFFFF

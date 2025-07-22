@@ -74,31 +74,7 @@ void BSP_init(void)
     board_init();
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
-    DBGMCU->CR |= DBGMCU_CR_TRACE_IOEN;
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    // TPI->ACPR = 12; 
-    // TPI->SPPR = 2;
-    // TPI->FFCR = 0x100;
-    DWT->CTRL = (1 << DWT_CTRL_CYCTAP_Pos)       // Prescaler for PC sampling
-                                                 // 0 = x64, 1 = x1024
-                | (0 << DWT_CTRL_POSTPRESET_Pos) // Postscaler for PC sampling
-                                                 // Divider = value + 1
-                | (1 << DWT_CTRL_PCSAMPLENA_Pos) // Enable PC sampling
-                | (2 << DWT_CTRL_SYNCTAP_Pos)    // Sync packet interval
-                                                 // 0 = Off, 1 = Every 2^23 cycles,
-                                                 // 2 = Every 2^25, 3 = Every 2^27
-                | (1 << DWT_CTRL_EXCTRCENA_Pos)  // Enable exception trace
-                | (1 << DWT_CTRL_CYCCNTENA_Pos); // Enable cycle counter
-
-    // /* Configure instrumentation trace macroblock */
-    ITM->LAR = 0xC5ACCE55;
-    ITM->TCR = (1 << ITM_TCR_TraceBusID_Pos) // Trace bus ID for TPIU
-               | (1 << ITM_TCR_DWTENA_Pos)   // Enable events from DWT
-               | (1 << ITM_TCR_SYNCENA_Pos)  // Enable sync packets
-               | (1 << ITM_TCR_ITMENA_Pos);  // Main enable for ITM
-    ITM->TER = 0xFFFFFFFF;                   // Enable all stimulus ports
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
-    ITM_SendChar('B'); // Send a character to ITM
 }
 
 void BSP_start(void)
@@ -176,4 +152,44 @@ void BSP_ledGreenOn(void)
 void BSP_ledGreenOff(void)
 {
     led_off(LED_3);
+}
+
+#define TRACE_CHANNEL 1
+#define DELAY_TIME    40
+
+__attribute__((no_instrument_function)) void __cyg_profile_func_enter(void* this_fn, void* call_site)
+{
+    if (!(ITM->TER & (1 << TRACE_CHANNEL))) return;
+    uint32_t oldIntStat = __get_PRIMASK();
+
+    // This is not atomic, but by using the stack for
+    // storing oldIntStat it doesn't matter
+    __disable_irq();
+    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
+
+    // This is CYCCNT - number of cycles of the CPU clock
+    ITM->PORT[TRACE_CHANNEL].u32 = ((*((uint32_t*)0xE0001004)) & 0x03FFFFFF) | 0x40000000;
+    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
+    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)(call_site) & 0xFFFFFFFE;
+    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
+
+    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)this_fn & 0xFFFFFFFE;
+    for (uint32_t d = 0; d < DELAY_TIME; d++) asm volatile("NOP");
+
+    __set_PRIMASK(oldIntStat);
+}
+
+__attribute__((no_instrument_function)) void __cyg_profile_func_exit(void* this_fn, void* call_site)
+{
+    if (!(ITM->TER & (1 << TRACE_CHANNEL))) return;
+    uint32_t oldIntStat = __get_PRIMASK();
+    __disable_irq();
+    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
+    ITM->PORT[TRACE_CHANNEL].u32 = ((*((uint32_t*)0xE0001004)) & 0x03FFFFFF) | 0x50000000;
+    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
+    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)(call_site) & 0xFFFFFFFE;
+    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
+    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)this_fn & 0xFFFFFFFE;
+    for (uint32_t d = 0; d < DELAY_TIME; d++) asm volatile("NOP");
+    __set_PRIMASK(oldIntStat);
 }
