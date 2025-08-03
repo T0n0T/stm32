@@ -4,5 +4,7 @@
         "*.json5": "jsonc",
         "*.inc": "shellscript",
         "*.h": "c",
-    }
+    },
+    "C_Cpp.default.compileCommands": "/workspaces/build/compile_commands.json",
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
 }

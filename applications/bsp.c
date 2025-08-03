@@ -6,12 +6,12 @@
 #include "board.h"
 #include "blinky.h" /* Blinky Application interface */
 #include "led.h"
+#include "lptimer.h"
 #include "button.h"
 #include "usart.h"
 #include "cm_backtrace.h"
 
-#define BTN_SW1 (1U << 4)
-#define BTN_SW2 (1U << 0)
+static bool sleep = false;
 
 /* Assertion handler  ======================================================*/
 Q_NORETURN Q_onAssert(char const* module, int_t id)
@@ -29,39 +29,49 @@ Q_NORETURN Q_onAssert(char const* module, int_t id)
     NVIC_SystemReset(); /* reset the CPU */
 }
 //............................................................................
-/* assert-handling function called by exception handlers in the startup code */
-void assert_failed(char const* const module, int_t const id); // prototype
-void assert_failed(char const* const module, int_t const id)
+void assert_failed(uint8_t* file, uint32_t line)
 {
-    Q_onAssert(module, id);
+    printf("assert_failed at file: %s, line: %d\r\n", file, line);
+#ifndef NDEBUG  /* debug build? */
+    while (1) { /* tie the CPU in this endless loop */
+    }
+#endif
+    NVIC_SystemReset(); /* reset the CPU */
 }
 
 /* ISRs  ===============================================*/
 void SysTick_Handler(void)
 {
     QTIMEEVT_TICK_X(0U, &l_SysTick_Handler); // time events at rate 0
-
-#ifdef Q_SPY
-    uint32_t volatile tmp = SysTick->CTRL; // clear CTRL_COUNTFLAG
-    QS_tickTime_ += QS_tickPeriod_;        // account for the clock rollover
-    Q_UNUSED_PAR(tmp);
-#endif
-
     QV_ARM_ERRATUM_838869();
+}
+
+static void wakeup_handle(uint8_t bit)
+{
+    if (bit == 1) {
+        sleep = false;
+        printf("sleep\r\n");
+    } else {
+        sleep = true;
+        printf("wakeup\r\n");
+    }
 }
 
 /*..........................................................................*/
 void QV_onIdle(void)
 {
-#ifdef NDEBUG
-    /* Put the CPU and peripherals to the low-power mode.
-     * you might need to customize the clock management for your application,
-     * see the datasheet for your particular Cortex-M MCU.
-     */
-    QV_CPU_SLEEP(); /* atomically go to sleep and enable interrupts */
-#else
+    if (sleep) {       
+        // HAL_SuspendTick();
+        /* Enter STOP 2 mode */
+        HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+        /* Resume SysTick */
+        // HAL_ResumeTick();
+        extern void SystemClock_Config(void);
+        SystemClock_Config();
+        SystemCoreClockUpdate();
+    }
+
     QF_INT_ENABLE(); /* just enable interrupts */
-#endif
 }
 
 /* BSP functions ===========================================================*/
@@ -75,6 +85,8 @@ void BSP_init(void)
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
+    lptimer_init();
+    wakeup_init(wakeup_handle);
 }
 
 void BSP_start(void)
@@ -88,7 +100,6 @@ void BSP_start(void)
     QActive_psInit(subscrSto, Q_DIM(subscrSto));
 
     // instantiate and start AOs/threads...
-
     static QEvtPtr blinkyQueueSto[10];
     Blinky_ctor();
     QActive_start(AO_Blinky,
@@ -102,17 +113,11 @@ void BSP_start(void)
 /*..........................................................................*/
 void QF_onStartup(void)
 {
-    /* set up the SysTick timer to fire at BSP_TICKS_PER_SEC rate
-     * NOTE: do NOT call OS_CPU_SysTickInit() from uC/OS-II
-     */
-    SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
-
-    /* set priorities of ALL ISRs used in the system, see NOTE1 */
-    NVIC_SetPriority(SysTick_IRQn, QF_AWARE_ISR_CMSIS_PRI + 1U);
-    /* ... */
-
-    /* enable IRQs in the NVIC... */
-    /* ... */
+    // SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
+    NVIC_SetPriority(LPTIM1_IRQn, 1);
+    NVIC_SetPriority(EXTI0_IRQn, 1);
+    NVIC_EnableIRQ(LPTIM1_IRQn);
+    NVIC_EnableIRQ(EXTI0_IRQn);
 }
 /*..........................................................................*/
 void QF_onCleanup(void)
@@ -155,7 +160,7 @@ void BSP_ledGreenOff(void)
 }
 
 #define TRACE_CHANNEL 1
-#define DELAY_TIME    40
+#define DELAY_TIME    80
 
 __attribute__((no_instrument_function)) void __cyg_profile_func_enter(void* this_fn, void* call_site)
 {
