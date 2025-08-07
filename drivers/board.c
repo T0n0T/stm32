@@ -23,6 +23,15 @@ void gpio_clk_init(GPIO_TypeDef* GPIOx)
         case (uint32_t)GPIOD:
             __HAL_RCC_GPIOD_CLK_ENABLE();
             break;
+        case (uint32_t)GPIOE:
+            __HAL_RCC_GPIOE_CLK_ENABLE();
+            break;
+        case (uint32_t)GPIOF:
+            __HAL_RCC_GPIOF_CLK_ENABLE();
+            break;
+        case (uint32_t)GPIOG:
+            __HAL_RCC_GPIOG_CLK_ENABLE();
+            break;
         default:
             break;
     }
@@ -60,7 +69,7 @@ void EXTI0_IRQHandler(void)
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == GPIO_PIN_0) {
         uint8_t bit = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);

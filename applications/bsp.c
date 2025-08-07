@@ -60,14 +60,16 @@ static void wakeup_handle(uint8_t bit)
 void QV_onIdle(void)
 {
     if (sleep) {       
-        // HAL_SuspendTick();
+        HAL_SuspendTick();
         /* Enter STOP 2 mode */
-        // HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+        // HAL_PWREx_EnterSTOPMode(PWR_REGULATOR_VOLTAGE_SCALE0, PWR_STOPENTRY_WFI, PWR_D1_DOMAIN);
         /* Resume SysTick */
-        // HAL_ResumeTick();
+        HAL_ResumeTick();
         extern void SystemClock_Config(void);
         SystemClock_Config();
         SystemCoreClockUpdate();
+    }else {
+        HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
     }
 
     QF_INT_ENABLE(); /* just enable interrupts */
@@ -79,13 +81,13 @@ void BSP_init(void)
     /* NOTE: SystemInit() has been already called from the startup code
      *  but SystemCoreClock needs to be updated
      */
-    cm_backtrace_init("STM32L4", "V1.0", "1.0.0");
+    cm_backtrace_init("build/stm32h7xx", "V1.0", "1.0.0");
     board_init();
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
-    lptimer_init();
-    wakeup_init(wakeup_handle);
+    // lptimer_init();
+    // wakeup_init(wakeup_handle);
 }
 
 void BSP_start(void)
@@ -113,10 +115,10 @@ void BSP_start(void)
 void QF_onStartup(void)
 {
     // SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
-    NVIC_SetPriority(LPTIM1_IRQn, 1);
-    NVIC_SetPriority(EXTI0_IRQn, 1);
-    NVIC_EnableIRQ(LPTIM1_IRQn);
-    NVIC_EnableIRQ(EXTI0_IRQn);
+    // NVIC_SetPriority(LPTIM1_IRQn, 1);
+    // NVIC_SetPriority(EXTI0_IRQn, 1);
+    // NVIC_EnableIRQ(LPTIM1_IRQn);
+    // NVIC_EnableIRQ(EXTI0_IRQn);
 }
 /*..........................................................................*/
 void QF_onCleanup(void)
@@ -133,44 +135,4 @@ void BSP_ledOn(void)
 void BSP_ledOff(void)
 {
     led_off(LED_1);
-}
-
-#define TRACE_CHANNEL 1
-#define DELAY_TIME    80
-
-__attribute__((no_instrument_function)) void __cyg_profile_func_enter(void* this_fn, void* call_site)
-{
-    if (!(ITM->TER & (1 << TRACE_CHANNEL))) return;
-    uint32_t oldIntStat = __get_PRIMASK();
-
-    // This is not atomic, but by using the stack for
-    // storing oldIntStat it doesn't matter
-    __disable_irq();
-    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
-
-    // This is CYCCNT - number of cycles of the CPU clock
-    ITM->PORT[TRACE_CHANNEL].u32 = ((*((uint32_t*)0xE0001004)) & 0x03FFFFFF) | 0x40000000;
-    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
-    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)(call_site) & 0xFFFFFFFE;
-    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
-
-    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)this_fn & 0xFFFFFFFE;
-    for (uint32_t d = 0; d < DELAY_TIME; d++) asm volatile("NOP");
-
-    __set_PRIMASK(oldIntStat);
-}
-
-__attribute__((no_instrument_function)) void __cyg_profile_func_exit(void* this_fn, void* call_site)
-{
-    if (!(ITM->TER & (1 << TRACE_CHANNEL))) return;
-    uint32_t oldIntStat = __get_PRIMASK();
-    __disable_irq();
-    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
-    ITM->PORT[TRACE_CHANNEL].u32 = ((*((uint32_t*)0xE0001004)) & 0x03FFFFFF) | 0x50000000;
-    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
-    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)(call_site) & 0xFFFFFFFE;
-    while (ITM->PORT[TRACE_CHANNEL].u32 == 0);
-    ITM->PORT[TRACE_CHANNEL].u32 = (uint32_t)this_fn & 0xFFFFFFFE;
-    for (uint32_t d = 0; d < DELAY_TIME; d++) asm volatile("NOP");
-    __set_PRIMASK(oldIntStat);
 }

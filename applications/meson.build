@@ -12,4 +12,5 @@ applications_sources = files(
   'main.c',
   'bsp.c',
   'blinky.c',
+  'io.c',
 )
