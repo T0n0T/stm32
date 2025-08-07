@@ -9,4 +9,8 @@ drivers_sources = files(
     'led.c',
     'lptimer.c',
     'usart.c',
+    'camera.c',
+    'lcd_spi_200.c',
+    'lcd_image.c',
+    'lcd_fonts.c',
 )
