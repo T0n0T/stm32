@@ -50,13 +50,3 @@ void lptimer_init(void)
         assert_param(0);
     }
 }
-
-void LPTIM1_IRQHandler(void)
-{
-    HAL_LPTIM_IRQHandler(&LptimHandle);
-}
-
-void HAL_LPTIM_CompareMatchCallback(LPTIM_HandleTypeDef* hlptim)
-{
-    printf("lptimer interrupt\r\n");
-}

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-#include "stm32l4xx_hal.h"
+#include "stm32h7xx_hal.h"
 
 typedef void (*wakeup_handle_func)(uint8_t);
 

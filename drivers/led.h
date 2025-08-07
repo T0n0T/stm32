@@ -8,9 +8,6 @@
 
 typedef enum led_index {
     LED_1 = 0,
-    LED_2,
-    LED_3,
-    LED_4,
     LED_MAX,
 } led_index_t;
 

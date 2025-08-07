@@ -1,4 +1,4 @@
-project('n32l40x_bin', 'c',
+project('stm32h7xx_bin', 'c',
   version: '1.0.0',
   default_options: [
     'buildtype=debugoptimized',
@@ -13,8 +13,8 @@ cross_file = 'tools/toolchains/arm-none-eabi-gcc.txt'
 c_args = [
   '-DUSE_HAL_DRIVER',
   '-DTINY_STDIO',
-  '-DUSE_FULL_ASSERT',
-  '-DSTM32L431xx',
+  '-DQF_NDUMMY_SYS',
+  '-DSTM32H723xx',
   '-mcpu=cortex-m4',
   '-mthumb',
   '-mfpu=fpv4-sp-d16',
@@ -41,8 +41,8 @@ link_args = [
   '-Wl,--gc-sections',
   '-specs=picolibc.specs',
   '-Xlinker',
-  '-Map=' + meson.current_build_dir() + '/stm32l4xx.map',
-  '-T', meson.current_source_dir() + '/stm32l4xx.ld',
+  '-Map=' + meson.current_build_dir() + '/stm32h7xx.map',
+  '-T', meson.current_source_dir() + '/stm32h7xx.ld',
   '-Wl,--gc-sections',     # 删除未使用的段
   '-Wl,--print-memory-usage', # 打印内存使用情况
 ]
@@ -71,7 +71,7 @@ if get_option('buildtype').startswith('debug')
 endif
 
 # 创建最终可执行文件
-stm32l4xx_elf = executable('stm32l4xx',
+stm32h7xx_elf = executable('stm32h7xx',
   sources: [ 
     applications_sources,
     appdep_sources,
@@ -91,7 +91,7 @@ stm32l4xx_elf = executable('stm32l4xx',
   # dependencies: [
   #   firmware_dep,  # 使用 firmware 模块的依赖声明
   # ],
-  c_args: c_args + firmware_c_args,
+  c_args: c_args,
   link_args: link_args,
   name_suffix: 'elf'
 )
@@ -111,8 +111,8 @@ jlink = find_program(jlink_exe)
 
 # 添加hex文件生成目标
 custom_target('hex',
-  input: stm32l4xx_elf,
-  output: 'stm32l4xx.hex',
+  input: stm32h7xx_elf,
+  output: 'stm32h7xx.hex',
   command: [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
   build_by_default: true
 )
@@ -120,8 +120,8 @@ custom_target('hex',
 run_target('disasm',
   command: [
     'sh', '-c',
-    objdump.full_path() + ' -d -S -l -C ' + stm32l4xx_elf.full_path() + ' > ' + 
-    meson.current_build_dir() / 'stm32l4xx.dis'
+    objdump.full_path() + ' -d -S -l -C ' + stm32h7xx_elf.full_path() + ' > ' + 
+    meson.current_build_dir() / 'stm32h7xx.dis'
   ]
 )
 
@@ -132,7 +132,7 @@ if get_option('JLINK_REMOTE') != 'disabled'
     command: [
       jlink,
       '-ip', get_option('JLINK_REMOTE'),
-      '-device', 'STM32L431RC',
+      '-device', 'STM32H723ZG',
       '-if', 'SWD',
       '-speed', '4000',
       '-autoconnect', '1',
@@ -143,7 +143,7 @@ else
   run_target('flash',
     command: [
       jlink,
-      '-device', 'STM32L431RC',
+      '-device', 'STM32H723ZG',
       '-if', 'SWD',
       '-speed', '4000',
       '-autoconnect', '1',

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-#include "stm32l4xx_hal.h"
+#include "board.h"
 
 void lptimer_init(void);
 

@@ -2,23 +2,8 @@
 
 static led_t leds[LED_MAX] = {
     {
-        .port         = GPIOC,
-        .pin          = GPIO_PIN_6,
-        .active_level = GPIO_PIN_RESET,
-    },
-    {
-        .port         = GPIOC,
+        .port         = GPIOG,
         .pin          = GPIO_PIN_7,
-        .active_level = GPIO_PIN_RESET,
-    },
-    {
-        .port         = GPIOC,
-        .pin          = GPIO_PIN_8,
-        .active_level = GPIO_PIN_RESET,
-    },
-    {
-        .port         = GPIOC,
-        .pin          = GPIO_PIN_9,
         .active_level = GPIO_PIN_RESET,
     },
 };

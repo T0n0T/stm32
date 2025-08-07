@@ -7,7 +7,6 @@
 #include "blinky.h" /* Blinky Application interface */
 #include "led.h"
 #include "lptimer.h"
-#include "button.h"
 #include "usart.h"
 #include "cm_backtrace.h"
 
@@ -63,7 +62,7 @@ void QV_onIdle(void)
     if (sleep) {       
         // HAL_SuspendTick();
         /* Enter STOP 2 mode */
-        HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+        // HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
         /* Resume SysTick */
         // HAL_ResumeTick();
         extern void SystemClock_Config(void);
@@ -134,29 +133,6 @@ void BSP_ledOn(void)
 void BSP_ledOff(void)
 {
     led_off(LED_1);
-}
-/*..........................................................................*/
-void BSP_ledBlueOn(void)
-{
-    led_on(LED_2);
-}
-
-/*..........................................................................*/
-void BSP_ledBlueOff(void)
-{
-    led_off(LED_2);
-}
-
-/*..........................................................................*/
-void BSP_ledGreenOn(void)
-{
-    led_on(LED_3);
-}
-
-/*..........................................................................*/
-void BSP_ledGreenOff(void)
-{
-    led_off(LED_3);
 }
 
 #define TRACE_CHANNEL 1
