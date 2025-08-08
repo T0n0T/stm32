@@ -69,7 +69,7 @@ void QV_onIdle(void)
         SystemClock_Config();
         SystemCoreClockUpdate();
     }else {
-        HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+        // HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
     }
 
     QF_INT_ENABLE(); /* just enable interrupts */
