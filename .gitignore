@@ -3,7 +3,7 @@ build
 
 firmware/CubeMX/*
 !firmware/CubeMX/Core
-!firmware/CubeMX/stm32l431xx.ioc
+!firmware/CubeMX/*.ioc
 
 **/JLinkLog.txt
 **/JLinkSettings.ini

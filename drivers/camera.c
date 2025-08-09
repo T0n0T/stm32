@@ -50,3 +50,8 @@ static inline void ov5640_write_reg16_bytes(uint16_t reg, uint8_t* data, uint8_t
     i2c_soft_stop(OV5640_SCCB_BUS);
 }
 
+void camera_init(void)
+{
+    extern void MX_DCMI_Init(void);
+    MX_DCMI_Init();
+}
