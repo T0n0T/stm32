@@ -83,17 +83,17 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
-void HardFault_Handler(void)
-{
-  /* USER CODE BEGIN HardFault_IRQn 0 */
+// void HardFault_Handler(void)
+// {
+//   /* USER CODE BEGIN HardFault_IRQn 0 */
 
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-    /* USER CODE END W1_HardFault_IRQn 0 */
-  }
-}
+//   /* USER CODE END HardFault_IRQn 0 */
+//   while (1)
+//   {
+//     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+//     /* USER CODE END W1_HardFault_IRQn 0 */
+//   }
+// }
 
 /**
   * @brief This function handles Memory management fault.
@@ -182,16 +182,16 @@ void PendSV_Handler(void)
 /**
   * @brief This function handles System tick timer.
   */
-void SysTick_Handler(void)
-{
-  /* USER CODE BEGIN SysTick_IRQn 0 */
+// void SysTick_Handler(void)
+// {
+//   /* USER CODE BEGIN SysTick_IRQn 0 */
 
-  /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
-  /* USER CODE BEGIN SysTick_IRQn 1 */
+//   /* USER CODE END SysTick_IRQn 0 */
+//   HAL_IncTick();
+//   /* USER CODE BEGIN SysTick_IRQn 1 */
 
-  /* USER CODE END SysTick_IRQn 1 */
-}
+//   /* USER CODE END SysTick_IRQn 1 */
+// }
 
 /******************************************************************************/
 /* STM32H7xx Peripheral Interrupt Handlers                                    */
