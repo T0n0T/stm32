@@ -7,6 +7,7 @@
 #include "blinky.h" /* Blinky Application interface */
 #include "led.h"
 #include "lptimer.h"
+#include "camera.h"
 #include "usart.h"
 #include "cm_backtrace.h"
 
@@ -86,6 +87,7 @@ void BSP_init(void)
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
+    camera_init(); /* initialize the camera */
     // lptimer_init();
     // wakeup_init(wakeup_handle);
 }
