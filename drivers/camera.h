@@ -692,8 +692,8 @@
 /* Polarity */
 #define OV5640_POLARITY_PCLK_LOW            0x00U /* Signal Active Low          */
 #define OV5640_POLARITY_PCLK_HIGH           0x01U /* Signal Active High         */
-#define OV5640_POLARITY_HREF_LOW            0x00U /* Signal Active Low          */
-#define OV5640_POLARITY_HREF_HIGH           0x01U /* Signal Active High         */
+#define OV5640_POLARITY_HREF_LOW            0x01U /* Signal Active Low          */
+#define OV5640_POLARITY_HREF_HIGH           0x00U /* Signal Active High         */
 #define OV5640_POLARITY_VSYNC_LOW           0x00U /* Signal Active Low          */
 #define OV5640_POLARITY_VSYNC_HIGH          0x01U /* Signal Active High         */
 
@@ -722,12 +722,50 @@
 #define OV5640_LIGHT_AUTO                   0x00U /* Light Mode Auto            */
 #define OV5640_LIGHT_SUNNY                  0x01U /* Light Mode Sunny           */
 #define OV5640_LIGHT_OFFICE                 0x02U /* Light Mode Office          */
+#define OV5640_LIGHT_CLOUDY                 0x03U /* Light Mode Claudy          */
 #define OV5640_LIGHT_HOME                   0x04U /* Light Mode Home            */
-#define OV5640_LIGHT_CLOUDY                 0x08U /* Light Mode Claudy          */
 
 /* Night Mode */
 #define NIGHT_MODE_DISABLE                  0x00U /* Disable night mode         */
 #define NIGHT_MODE_ENABLE                   0x01U /* Enable night mode          */
+
+/* Brightness */
+#define OV5640_BRIGHTNESS_UP_4              0x00U /* Brightness +4               */
+#define OV5640_BRIGHTNESS_UP_3              0x01U /* Brightness +3               */
+#define OV5640_BRIGHTNESS_UP_2              0x02U /* Brightness +2               */
+#define OV5640_BRIGHTNESS_UP_1              0x03U /* Brightness +1               */
+#define OV5640_BRIGHTNESS_0                 0x04U /* Brightness 0 (default)      */
+#define OV5640_BRIGHTNESS_DOWN_1            0x05U /* Brightness -1               */
+#define OV5640_BRIGHTNESS_DOWN_2            0x06U /* Brightness -2               */
+#define OV5640_BRIGHTNESS_DOWN_3            0x07U /* Brightness -3               */
+#define OV5640_BRIGHTNESS_DOWN_4            0x08U /* Brightness -4               */
+
+/* Contrast */
+#define OV5640_CONTRAST_UP_3                0x00U /* Contrast +3               */
+#define OV5640_CONTRAST_UP_2                0x01U /* Contrast +2               */
+#define OV5640_CONTRAST_UP_1                0x02U /* Contrast +1               */
+#define OV5640_CONTRAST_0                   0x03U /* Contrast 0 (default)      */
+#define OV5640_CONTRAST_DOWN_1              0x04U /* Contrast -1               */
+#define OV5640_CONTRAST_DOWN_2              0x05U /* Contrast -2               */
+#define OV5640_CONTRAST_DOWN_3              0x06U /* Contrast -3               */
+
+/* Saturation */
+#define OV5640_SATURATION_UP_3              0x00U /* Saturation +3               */
+#define OV5640_SATURATION_UP_2              0x01U /* Saturation +2               */
+#define OV5640_SATURATION_UP_1              0x02U /* Saturation +1               */
+#define OV5640_SATURATION_0                 0x03U /* Saturation 0 (default)      */
+#define OV5640_SATURATION_DOWN_1            0x04U /* Saturation -1               */
+#define OV5640_SATURATION_DOWN_2            0x05U /* Saturation -2               */
+#define OV5640_SATURATION_DOWN_3            0x06U /* Saturation -3               */
+
+/* exposure compensation */
+#define OV5640_EXPOSURE_COMPENSATION_UP_3   0x00U /* Exposure compensation +3           */
+#define OV5640_EXPOSURE_COMPENSATION_UP_2   0x01U /* Exposure compensation +2           */
+#define OV5640_EXPOSURE_COMPENSATION_UP_1   0x02U /* Exposure compensation +1           */
+#define OV5640_EXPOSURE_COMPENSATION_0      0x03U /* Exposure compensation 0 (default)  */
+#define OV5640_EXPOSURE_COMPENSATION_DOWN_1 0x04U /* Exposure compensation -1           */
+#define OV5640_EXPOSURE_COMPENSATION_DOWN_2 0x05U /* Exposure compensation -2           */
+#define OV5640_EXPOSURE_COMPENSATION_DOWN_3 0x06U /* Exposure compensation -3           */
 
 /* Colorbar Mode */
 #define COLORBAR_MODE_DISABLE               0x00U /* Disable colorbar mode      */
@@ -756,33 +794,29 @@
 #define OV5640_DVP_MODE                     0x01U
 #define OV5640_MIPI_MODE                    0x02U
 
+typedef struct camera_ins_s {
+    uint8_t  resolution; // 分辨率
+    uint8_t  mode;       // 模式
+    uint32_t capture_ok;
+} camera_ins_t;
+
+extern camera_ins_t camera_ins;
+
 void camera_init(void);
-void camera_start(void);
+void camera_start(uint32_t buffer_address, uint32_t buffer_size, uint8_t is_predictive);
 void camera_stop(void);
 
 uint16_t camera_read_id(void);
-void     camera_set_polarity(uint8_t pclk_polarity, uint8_t href_polarity,
-                             uint8_t vsync_polarity);
 
 // 镜像翻转
 void camera_set_mirror_flip(uint8_t mode);
-// 曝光时间
-void camera_set_exposure_time(uint16_t time);
-// 增益
-void camera_set_gain(uint16_t gain);
-// 图像格式
 void camera_set_format(uint8_t format);
-// 白平衡
-void camera_set_white_balance(uint8_t mode);
-// 饱和度
-void camera_set_saturation(uint8_t level);
-// 对比度
+void camera_set_brightness(uint8_t level);
 void camera_set_contrast(uint8_t level);
-// 锐度
-void camera_set_sharpness(uint8_t level);
-// 帧率
-void camera_set_frame_rate(uint8_t rate);
-// 分辨率
+void camera_set_saturation(uint8_t level);
+void camera_set_exposure_compensation(uint8_t level);
+void camera_set_lightmode(uint8_t mode);
+void camera_set_nightmode(uint8_t mode);
 void camera_set_resolution(uint8_t resolution);
 
 #endif /* CAMERA_H */

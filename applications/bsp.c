@@ -8,6 +8,7 @@
 #include "led.h"
 #include "lptimer.h"
 #include "camera.h"
+#include "stm32h7xx_hal.h"
 #include "usart.h"
 #include "cm_backtrace.h"
 
@@ -69,7 +70,8 @@ void QV_onIdle(void)
         extern void SystemClock_Config(void);
         SystemClock_Config();
         SystemCoreClockUpdate();
-    }else {
+    } else {
+        HAL_IncTick();
         // HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
     }
 
