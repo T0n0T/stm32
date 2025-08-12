@@ -12,7 +12,4 @@
     "--clang-tidy"
   ],
   "clangd.path": "/opt/clangd/bin/clangd",
-  "clang-tidy.buildPath": "/workspaces/build",
-  "C_Cpp.default.compileCommands": "/workspaces/build/compile_commands.json",
-  "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
 }

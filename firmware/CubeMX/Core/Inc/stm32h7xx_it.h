@@ -57,7 +57,9 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 void DMA1_Stream0_IRQHandler(void);
 void DCMI_PSSI_IRQHandler(void);
+void SPI6_IRQHandler(void);
 void LPTIM1_IRQHandler(void);
+void BDMA_Channel0_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

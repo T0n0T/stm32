@@ -11,4 +11,6 @@ drivers_sources = files(
     'lptimer.c',
     'usart.c',
     'camera.c',
+    'st7789.c',
+    'fonts.c',
 )

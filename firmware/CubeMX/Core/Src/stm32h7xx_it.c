@@ -58,6 +58,8 @@
 extern DMA_HandleTypeDef hdma_dcmi;
 extern DCMI_HandleTypeDef hdcmi;
 extern LPTIM_HandleTypeDef hlptim1;
+extern DMA_HandleTypeDef hdma_spi6_tx;
+extern SPI_HandleTypeDef hspi6;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -229,6 +231,20 @@ void DCMI_PSSI_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles SPI6 global interrupt.
+  */
+void SPI6_IRQHandler(void)
+{
+  /* USER CODE BEGIN SPI6_IRQn 0 */
+
+  /* USER CODE END SPI6_IRQn 0 */
+  HAL_SPI_IRQHandler(&hspi6);
+  /* USER CODE BEGIN SPI6_IRQn 1 */
+
+  /* USER CODE END SPI6_IRQn 1 */
+}
+
+/**
   * @brief This function handles LPTIM1 global interrupt.
   */
 void LPTIM1_IRQHandler(void)
@@ -240,6 +256,20 @@ void LPTIM1_IRQHandler(void)
   /* USER CODE BEGIN LPTIM1_IRQn 1 */
 
   /* USER CODE END LPTIM1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles BDMA channel0 global interrupt.
+  */
+void BDMA_Channel0_IRQHandler(void)
+{
+  /* USER CODE BEGIN BDMA_Channel0_IRQn 0 */
+
+  /* USER CODE END BDMA_Channel0_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_spi6_tx);
+  /* USER CODE BEGIN BDMA_Channel0_IRQn 1 */
+
+  /* USER CODE END BDMA_Channel0_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

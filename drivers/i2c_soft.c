@@ -2,11 +2,6 @@
 #include "stm32h723xx.h"
 #include "stm32h7xx_hal_gpio.h"
 
-// GPIO寄存器操作宏定义
-#define GPIO_SET_PIN(port, pin)   ((port)->BSRR = (pin))
-#define GPIO_RESET_PIN(port, pin) ((port)->BSRR = ((pin) << 16))
-#define GPIO_READ_PIN(port, pin)  ((port)->IDR & (pin))
-
 static i2c_soft_t i2c_soft_ins[I2C_SOFT_MAX] = {
     {
         .sda_port = GPIOF,

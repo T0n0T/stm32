@@ -8,6 +8,7 @@
 #include "led.h"
 #include "lptimer.h"
 #include "camera.h"
+#include "st7789.h"
 #include "stm32h7xx_hal.h"
 #include "usart.h"
 #include "cm_backtrace.h"
@@ -44,6 +45,7 @@ void assert_failed(uint8_t* file, uint32_t line)
 void SysTick_Handler(void)
 {
     QTIMEEVT_TICK_X(0U, &l_SysTick_Handler); // time events at rate 0
+    HAL_IncTick();
     QV_ARM_ERRATUM_838869();
 }
 
@@ -71,7 +73,6 @@ void QV_onIdle(void)
         SystemClock_Config();
         SystemCoreClockUpdate();
     } else {
-        HAL_IncTick();
         // HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
     }
 
@@ -89,7 +90,10 @@ void BSP_init(void)
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
-    camera_init(); /* initialize the camera */
+    // camera_init();
+    HAL_Delay(10);
+    st7789_init();
+    st7789_test();
     // lptimer_init();
     // wakeup_init(wakeup_handle);
 }

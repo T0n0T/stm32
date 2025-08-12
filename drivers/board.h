@@ -6,6 +6,10 @@
 #include <string.h>
 #include "stm32h7xx_hal.h"
 
+#define GPIO_SET_PIN(port, pin)   ((port)->BSRR = (pin))
+#define GPIO_RESET_PIN(port, pin) ((port)->BSRR = ((pin) << 16))
+#define GPIO_READ_PIN(port, pin)  ((port)->IDR & (pin))
+
 typedef void (*wakeup_handle_func)(uint8_t);
 
 void gpio_clk_init(GPIO_TypeDef* GPIOx);

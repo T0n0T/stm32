@@ -53,11 +53,12 @@ extern "C" {
 void Error_Handler(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
+void MX_BDMA_Init(void);
 void MX_DCMI_Init(void);
 void MX_LPTIM1_Init(void);
 void MX_SPI6_Init(void);
-void MX_USART1_UART_Init(void);
 void MX_USB_OTG_HS_PCD_Init(void);
+void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN EFP */
 

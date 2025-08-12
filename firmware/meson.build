@@ -143,17 +143,17 @@ firmware_sources += files(
   './STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_utils.c',
 )
 
-# 编译为静态库
-firmware_lib = static_library(
-  'firmware',
-  sources: firmware_sources,
-  include_directories: firmware_incdirs,
-  c_args: c_args, # 使用更新后的 C 参数
-  pic: false, # 对于嵌入式目标通常不需要 PIC
-)
+# # 编译为静态库
+# firmware_lib = static_library(
+#   'firmware',
+#   sources: firmware_sources,
+#   include_directories: firmware_incdirs,
+#   c_args: c_args, # 使用更新后的 C 参数
+#   pic: false, # 对于嵌入式目标通常不需要 PIC
+# )
 
-# 创建 firmware 依赖项，供根 meson.build 使用
-firmware_dep = declare_dependency(link_with: firmware_lib, include_directories: firmware_incdirs)
+# # 创建 firmware 依赖项，供根 meson.build 使用
+# firmware_dep = declare_dependency(link_with: firmware_lib, include_directories: firmware_incdirs)
 
-# # 导出依赖项
-meson.override_dependency('firmware', firmware_dep)
+# # # 导出依赖项
+# meson.override_dependency('firmware', firmware_dep)
