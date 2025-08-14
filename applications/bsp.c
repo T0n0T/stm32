@@ -12,8 +12,10 @@
 #include "stm32h7xx_hal.h"
 #include "usart.h"
 #include "cm_backtrace.h"
+#include <stdint.h>
 
 static bool sleep = false;
+static uint32_t __attribute__((section("camera"))) camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 /* Assertion handler  ======================================================*/
 Q_NORETURN Q_onAssert(char const* module, int_t id)
@@ -63,7 +65,7 @@ static void wakeup_handle(uint8_t bit)
 /*..........................................................................*/
 void QV_onIdle(void)
 {
-    if (sleep) {       
+    if (sleep) {
         HAL_SuspendTick();
         /* Enter STOP 2 mode */
         // HAL_PWREx_EnterSTOPMode(PWR_REGULATOR_VOLTAGE_SCALE0, PWR_STOPENTRY_WFI, PWR_D1_DOMAIN);
@@ -90,10 +92,10 @@ void BSP_init(void)
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
-    // camera_init();
-    HAL_Delay(10);
-    st7789_init();
-    st7789_test();
+    i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
+    camera_init(); // Initialize Camera
+    // st7789_init();
+    // st7789_test();
     // lptimer_init();
     // wakeup_init(wakeup_handle);
 }
@@ -122,6 +124,9 @@ void BSP_start(void)
 /*..........................................................................*/
 void QF_onStartup(void)
 {
+    camera_start((uint32_t)camera_buffer,
+                 sizeof(camera_buffer),
+                 1);
     // SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
     // NVIC_SetPriority(LPTIM1_IRQn, 1);
     // NVIC_SetPriority(EXTI0_IRQn, 1);

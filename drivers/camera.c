@@ -1,9 +1,12 @@
 #include "camera.h"
+#include "board.h"
 #include "i2c_soft.h"
 #include "stm32h7xx_hal_dcmi.h"
+#include "stm32h7xx_hal_gpio.h"
 #include <stdint.h>
+#include <stdio.h>
 
-#define OV5640_SCCB_ADDRESS 0x3c       // OV5640地址
+#define OV5640_SCCB_ADDRESS 0x78       // OV5640地址
 #define OV5640_SCCB_BUS     I2C_SOFT_1 // 使用的I2C总线索引
 #define OV5640_DELAY_MS(x)  HAL_Delay(x)
 
@@ -29,7 +32,9 @@ static inline void ov5640_write_reg16_byte(uint16_t reg, uint8_t data)
         (uint8_t)data,
     };
     i2c_soft_start(OV5640_SCCB_BUS);
-    i2c_soft_write_bytes(OV5640_SCCB_BUS, buf, 4);
+    if (i2c_soft_write_bytes(OV5640_SCCB_BUS, buf, 4) != 0) {
+        printf("ov5640 write reg 0x%04x failed\r\n", reg);
+    }
     i2c_soft_stop(OV5640_SCCB_BUS);
 }
 
@@ -41,12 +46,16 @@ static inline uint8_t ov5640_read_reg16_byte(uint16_t reg)
         (uint8_t)((reg) >> 8),
         (uint8_t)(reg),
     };
-    uint8_t read_addr = OV5640_SCCB_ADDRESS << 1 | 0x01; // 7位地址转换为8位地址
+    uint8_t read_addr = OV5640_SCCB_ADDRESS | 0x01;
     i2c_soft_start(OV5640_SCCB_BUS);
-    i2c_soft_write_bytes(OV5640_SCCB_BUS, buf, 2);
+    if (i2c_soft_write_bytes(OV5640_SCCB_BUS, buf, 3) != 0) {
+        printf("ov5640_read_reg16_byte failed 1\r\n");
+    }
     i2c_soft_stop(OV5640_SCCB_BUS);
     i2c_soft_start(OV5640_SCCB_BUS);
-    i2c_soft_write_bytes(OV5640_SCCB_BUS, &read_addr, 1);
+    if (i2c_soft_write_bytes(OV5640_SCCB_BUS, &read_addr, 1) != 0) {
+        printf("ov5640_read_reg16_byte failed 2\r\n");
+    }
     i2c_soft_read_bytes(OV5640_SCCB_BUS, &data, 1);
     i2c_soft_stop(OV5640_SCCB_BUS);
     return data;
@@ -66,7 +75,7 @@ static inline void ov5640_write_reg16_bytes(uint16_t reg, uint8_t* data,
     i2c_soft_stop(OV5640_SCCB_BUS);
 }
 
-uint16_t camera_read_id(void)
+static uint16_t camera_read_id(void)
 {
     uint16_t id = 0;
 
@@ -96,7 +105,7 @@ void camera_stop(void)
     // HAL_DMA_DeInit(&hdma_dcmi);
 }
 
-void camera_crop(uint8_t want_x, uint8_t want_y)
+void camera_crop(uint16_t want_x, uint16_t want_y)
 {
     uint16_t x = 0;
     uint16_t y = 0;
@@ -160,7 +169,7 @@ void camera_set_polarity(uint8_t pclk_polarity, uint8_t href_polarity,
 {
     uint8_t tmp4740 =
         ((pclk_polarity << 5) | (href_polarity << 1) | vsync_polarity);
-    ov5640_write_reg16_byte(OV5640_POLARITY_CTRL, tmp4740);
+    ov5640_write_reg16_byte(OV5640_POLARITY_CTRL, 0x21);
 }
 
 void camera_set_resolution(uint8_t resolution)
@@ -482,10 +491,35 @@ void camera_init(void)
     extern void MX_DCMI_Init(void);
     MX_DCMI_Init();
 
+    extern void MX_DMA_Init(void);
+    MX_DMA_Init();
+
+#define OV5640_PWDN_PORT GPIOF
+#define OV5640_PWDN_PIN  GPIO_PIN_13
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    gpio_clk_init(OV5640_PWDN_PORT);
+    GPIO_InitStruct.Pin   = OV5640_PWDN_PIN;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP; // 开漏输出
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(OV5640_PWDN_PORT, &GPIO_InitStruct);
+
+    GPIO_RESET_PIN(OV5640_PWDN_PORT, OV5640_PWDN_PIN);
+    OV5640_DELAY_MS(20);
+
+    ov5640_write_reg16_byte(OV5640_SCCB_SYSTEM_CTRL1, 0x11); // system clock from pad, bit[1]
+    ov5640_write_reg16_byte(OV5640_SYSTEM_CTROL0, 0x82);     // software reset, bit[7]
+    OV5640_DELAY_MS(10);                                     // 等待10ms
+
+    uint16_t id = camera_read_id();
+    if (id != OV5640_ID) {
+        printf("Camera ID error! Expected: 0x%04x, Got: 0x%04x\n", OV5640_ID, id);
+        return;
+    }
+    printf("Camera ID: 0x%04x\n", id);
+
     /* Initialization sequence for OV5640 */
     static const uint16_t OV5640_INIT_SEQ[][2] = {
-        {OV5640_SCCB_SYSTEM_CTRL1, 0x11}, // system clock from pad, bit[1]
-        {OV5640_SYSTEM_CTROL0, 0x82},     // software reset, bit[7]
         // maybe need delay 5ms
         {OV5640_SYSTEM_CTROL0, 0x42},     // software power down, bit[6]
         {OV5640_SCCB_SYSTEM_CTRL1, 0x03}, // system clock from PLL, bit[1]
@@ -710,10 +744,8 @@ void camera_init(void)
         {0x5025, 0x00},
         {OV5640_SYSTEM_CTROL0, 0x02}, // wake up from standby, bit[6]
     };
-    ov5640_write_reg16_byte(OV5640_INIT_SEQ[0][0], OV5640_INIT_SEQ[0][1]);
-    ov5640_write_reg16_byte(OV5640_INIT_SEQ[0][0], OV5640_INIT_SEQ[1][1]);
-    OV5640_DELAY_MS(5); // wait for reset
-    for (uint32_t i = 2; i < sizeof(OV5640_INIT_SEQ) / sizeof(OV5640_INIT_SEQ[0]);
+
+    for (uint32_t i = 0; i < sizeof(OV5640_INIT_SEQ) / sizeof(OV5640_INIT_SEQ[0]);
          i++) {
         ov5640_write_reg16_byte(OV5640_INIT_SEQ[i][0], OV5640_INIT_SEQ[i][1]);
     }
@@ -722,6 +754,7 @@ void camera_init(void)
     camera_set_format(OV5640_RGB565);
     camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
                         OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
+    camera_crop(240, 320);
 }
 
 void camera_pattern_test(void)

@@ -806,8 +806,6 @@ void camera_init(void);
 void camera_start(uint32_t buffer_address, uint32_t buffer_size, uint8_t is_predictive);
 void camera_stop(void);
 
-uint16_t camera_read_id(void);
-
 // 镜像翻转
 void camera_set_mirror_flip(uint8_t mode);
 void camera_set_format(uint8_t format);

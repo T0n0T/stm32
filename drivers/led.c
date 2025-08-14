@@ -24,12 +24,12 @@ void led_init(void)
 
 void led_on(led_index_t index)
 {
-    HAL_GPIO_WritePin(leds[index].port, leds[index].pin, leds[index].active_level);
+    leds[index].port->BSRR = (leds[index].active_level == GPIO_PIN_SET) ? leds[index].pin : (leds[index].pin << 16);
 }
 
 void led_off(led_index_t index)
 {
-    HAL_GPIO_WritePin(leds[index].port, leds[index].pin, !leds[index].active_level);
+    leds[index].port->BSRR = (leds[index].active_level == GPIO_PIN_RESET) ? leds[index].pin : (leds[index].pin << 16);
 }
 
 void led_toggle(led_index_t index)

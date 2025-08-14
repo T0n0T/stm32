@@ -14,8 +14,13 @@ static i2c_soft_t i2c_soft_ins[I2C_SOFT_MAX] = {
 // 延迟函数，用于控制I2C时序
 static void i2c_soft_delay(void)
 {
-    // 根据系统时钟调整延时
-    for (volatile int i = 0; i < 60; i++);
+    uint32_t start = DWT->CYCCNT;
+    // 假设系统时钟为480MHz，延时约5微秒 (480 cycles per microsecond * 5 microseconds = 2400 cycles)
+    // 可根据实际系统时钟频率调整
+    uint32_t delay_cycles = 800;
+    while ((DWT->CYCCNT - start) < delay_cycles) {
+        // 空循环等待
+    }
 }
 
 // 配置SDA为输出
@@ -26,7 +31,7 @@ static void i2c_soft_sda_out(i2c_soft_t* config)
     GPIO_InitStruct.Pin   = config->sda_pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_OD; // 开漏输出
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(config->sda_port, &GPIO_InitStruct);
 }
 
@@ -38,7 +43,7 @@ static void i2c_soft_scl_out(i2c_soft_t* config)
     GPIO_InitStruct.Pin   = config->scl_pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_OD; // 开漏输出
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(config->scl_port, &GPIO_InitStruct);
 }
 
@@ -48,6 +53,9 @@ void i2c_soft_init(i2c_soft_index_t index)
     if (index >= I2C_SOFT_MAX) {
         return;
     }
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     i2c_soft_t* config = &i2c_soft_ins[index];
     // 配置SDA和SCL为开漏输出
     i2c_soft_sda_out(config);
@@ -74,6 +82,7 @@ static inline void _i2c_soft_start(i2c_soft_t* config)
 static inline void _i2c_soft_stop(i2c_soft_t* config)
 {
     GPIO_RESET_PIN(config->sda_port, config->sda_pin);
+    i2c_soft_delay();
     GPIO_SET_PIN(config->scl_port, config->scl_pin);
     i2c_soft_delay();
     GPIO_SET_PIN(config->sda_port, config->sda_pin);
@@ -97,15 +106,14 @@ static inline uint8_t _i2c_soft_write_byte(i2c_soft_t* config, uint8_t data)
         i2c_soft_delay();
         GPIO_RESET_PIN(config->scl_port, config->scl_pin);
         i2c_soft_delay();
+        if (i == 7) {
+            GPIO_SET_PIN(config->sda_port, config->sda_pin);
+        }
     }
 
-    // 释放SDA线，准备接收ACK
-    GPIO_SET_PIN(config->sda_port, config->sda_pin);
-    i2c_soft_delay();
+    // 读取ACK信号
     GPIO_SET_PIN(config->scl_port, config->scl_pin);
     i2c_soft_delay();
-
-    // 读取ACK信号
     uint8_t ack = GPIO_READ_PIN(config->sda_port, config->sda_pin) ? 1 : 0;
 
     GPIO_RESET_PIN(config->scl_port, config->scl_pin);
@@ -139,7 +147,6 @@ static inline uint8_t _i2c_soft_read_byte(i2c_soft_t* config, uint8_t ack)
     }
 
     // 发送ACK或NACK
-    i2c_soft_sda_out(config);
     if (ack) {
         GPIO_RESET_PIN(config->sda_port, config->sda_pin); // ACK
     } else {
@@ -149,8 +156,8 @@ static inline uint8_t _i2c_soft_read_byte(i2c_soft_t* config, uint8_t ack)
     GPIO_SET_PIN(config->scl_port, config->scl_pin);
     i2c_soft_delay();
     GPIO_RESET_PIN(config->scl_port, config->scl_pin);
-    i2c_soft_delay();
     GPIO_SET_PIN(config->sda_port, config->sda_pin);
+    i2c_soft_delay();
 
     return data;
 }

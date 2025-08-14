@@ -8,8 +8,7 @@ uint16_t DMA_MIN_SIZE = 16;
  * And if your MCU have enough RAM(even larger than full-frame size),
  * Then you can specify the framebuffer size to the full resolution below.
  */
-#define HOR_LEN 5 //	Also mind the resolution of your screen!
-uint8_t disp_buf[ST7789_WIDTH * HOR_LEN];
+uint8_t display_buffer[ST7789_WIDTH * ST7789_HEIGHT] __attribute__((section("display"))); // 240x320 RGB565
 #endif
 
 #define ST7789_DELAY_MS(x) HAL_Delay(x)
@@ -80,16 +79,16 @@ void st7789_set_rotation(uint8_t m)
     st7789_write_command(ST7789_MADCTL); // MADCTL
     switch (m) {
         case 0:
-            st7789_write_data_byte(ST7789_MADCTL_MX | ST7789_MADCTL_MY | ST7789_MADCTL_RGB);
+            st7789_write_data_byte(0x00);
             break;
         case 1:
-            st7789_write_data_byte(ST7789_MADCTL_MY | ST7789_MADCTL_MV | ST7789_MADCTL_RGB);
+            st7789_write_data_byte(ST7789_MADCTL_MX | ST7789_MADCTL_MY);
             break;
         case 2:
-            st7789_write_data_byte(ST7789_MADCTL_RGB);
+            st7789_write_data_byte(ST7789_MADCTL_MY | ST7789_MADCTL_MV);
             break;
         case 3:
-            st7789_write_data_byte(ST7789_MADCTL_MX | ST7789_MADCTL_MV | ST7789_MADCTL_RGB);
+            st7789_write_data_byte(ST7789_MADCTL_MX | ST7789_MADCTL_MV);
             break;
         default:
             break;
@@ -132,11 +131,45 @@ static void st7789_set_address_window(uint16_t x0, uint16_t y0, uint16_t x1, uin
  */
 void st7789_init(void)
 {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    gpio_clk_init(ST7789_DC_PORT);
+    GPIO_InitStruct.Pin   = ST7789_DC_PIN;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(ST7789_DC_PORT, &GPIO_InitStruct);
+
+    gpio_clk_init(ST7789_BLK_PORT);
+    GPIO_InitStruct.Pin   = ST7789_BLK_PIN;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull  = GPIO_PULLDOWN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(ST7789_BLK_PORT, &GPIO_InitStruct);
+#ifndef CFG_NO_RST
+    gpio_clk_init(ST7789_RST_PORT);
+    GPIO_InitStruct.Pin   = ST7789_RST_PIN;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(ST7789_RST_PORT, &GPIO_InitStruct);
+#endif // CFG_NO_RST
+
+#ifndef CFG_NO_CS
+    gpio_clk_init(ST7789_CS_PORT);
+    GPIO_InitStruct.Pin   = ST7789_CS_PIN;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(ST7789_CS_PORT, &GPIO_InitStruct);
+#endif // CFG_NO_CS
+
     extern void MX_SPI6_Init(void);
     MX_SPI6_Init();
 
+    extern void MX_BDMA_Init(void);
+    MX_BDMA_Init();
 #ifdef ST7789_USE_DMA
-    memset(disp_buf, 0, sizeof(disp_buf));
+    memset(display_buffer, 0, sizeof(display_buffer));
 #endif
     ST7789_DELAY_MS(10);
     ST7789_RST_RESET();
@@ -151,7 +184,7 @@ void st7789_init(void)
         uint8_t data[] = {0x0C, 0x0C, 0x00, 0x33, 0x33};
         st7789_write_data(data, sizeof(data));
     }
-    st7789_set_rotation(ST7789_ROTATION); //	MADCTL (Display Rotation)
+    st7789_set_rotation(ST7789_ROTATION_0); //	MADCTL (Display Rotation)
 
     /* Internal LCD Voltage generator settings */
     st7789_write_command(0XB7);   //	Gate Control
@@ -205,9 +238,9 @@ void st7789_fill_window(uint16_t color)
     ST7789_SELECT();
 
 #ifdef ST7789_USE_DMA
-    for (i = 0; i < ST7789_HEIGHT / HOR_LEN; i++) {
-        memset(disp_buf, color, sizeof(disp_buf));
-        st7789_write_data(disp_buf, sizeof(disp_buf));
+    for (i = 0; i < ST7789_HEIGHT; i++) {
+        memset(display_buffer, color, sizeof(display_buffer));
+        st7789_write_data(display_buffer, sizeof(display_buffer));
     }
 #else
     uint16_t j;
@@ -295,8 +328,6 @@ void st7789_draw_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
         swap = x1;
         x1   = y1;
         y1   = swap;
-        //_swap_int16_t(x0, y0);
-        //_swap_int16_t(x1, y1);
     }
 
     if (x0 > x1) {
@@ -307,8 +338,6 @@ void st7789_draw_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
         swap = y0;
         y0   = y1;
         y1   = swap;
-        //_swap_int16_t(x0, x1);
-        //_swap_int16_t(y0, y1);
     }
 
     int16_t dx, dy;

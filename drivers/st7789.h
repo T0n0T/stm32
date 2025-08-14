@@ -33,18 +33,18 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
 
 /* Backlight control */
 #define ST7789_BLK_PORT         GPIOG
-#define ST7789_BLK_PIN          GPIO_PIN_15
+#define ST7789_BLK_PIN          GPIO_PIN_12
 
 /* Choose a display rotation you want to use: (0-3) */
-// #define ST7789_ROTATION 0
-// #define ST7789_ROTATION 1
-#define ST7789_ROTATION         2 //  use Normally on 240x240
-                                  // #define ST7789_ROTATION 3
+#define ST7789_ROTATION_0       0 // default
+#define ST7789_ROTATION_1       1 // mirror and flip
+#define ST7789_ROTATION_2       2 // 90 degree
+#define ST7789_ROTATION_3       3 // 270 degree
 
 #define ST7789_WIDTH            240
 #define ST7789_HEIGHT           320
-#define X_SHIFT                 40
-#define Y_SHIFT                 53
+#define X_SHIFT                 0
+#define Y_SHIFT                 0
 
 /**
  *Color of pen
@@ -105,16 +105,18 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
  *
  */
 
-/* Page Address Order ('0': Top to Bottom, '1': the opposite) */
+/* Page Address Order, Y-axis ('0': Top to Bottom, '1': the opposite) */
 #define ST7789_MADCTL_MY        0x80
-/* Column Address Order ('0': Left to Right, '1': the opposite) */
+/* Column Address Order, X-axis ('0': Left to Right, '1': the opposite) */
 #define ST7789_MADCTL_MX        0x40
-/* Page/Column Order ('0' = Normal Mode, '1' = Reverse Mode) */
+/* Page/Column Order, all axis ('0' = Normal Mode, '1' = Reverse Mode) */
 #define ST7789_MADCTL_MV        0x20
-/* Line Address Order ('0' = LCD Refresh Top to Bottom, '1' = the opposite) */
+/* Line Refresh Order ('0' = LCD Refresh Top to Bottom, '1' = the opposite) */
 #define ST7789_MADCTL_ML        0x10
 /* RGB/BGR Order ('0' = RGB, '1' = BGR) */
-#define ST7789_MADCTL_RGB       0x00
+#define ST7789_MADCTL_RGB       0x08
+/* Horizontal Refresh Order ('0' = LCD Refresh Left to Right, '1' = the opposite) */
+#define ST7789_MADCTL_MH        0x04
 
 #define ST7789_RDID1            0xDA
 #define ST7789_RDID2            0xDB
@@ -126,15 +128,15 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
 #define ST7789_COLOR_MODE_18bit 0x66 //  RGB666 (18bit)
 
 /* Basic operations */
-#define ST7789_DC_RESET()         GPIO_RESET_PIN(ST7789_DC_PORT, ST7789_DC_PIN)
+#define ST7789_DC_RESET()       GPIO_RESET_PIN(ST7789_DC_PORT, ST7789_DC_PIN)
 #define ST7789_DC_SET()         GPIO_SET_PIN(ST7789_DC_PORT, ST7789_DC_PIN)
 
 #ifndef CFG_NO_RST
 #define ST7789_RST_RESET() GPIO_RESET_PIN(ST7789_RST_PORT, ST7789_RST_PIN)
-#define ST7789_RST_SET() GPIO_SET_PIN(ST7789_RST_PORT, ST7789_RST_PIN)
+#define ST7789_RST_SET()   GPIO_SET_PIN(ST7789_RST_PORT, ST7789_RST_PIN)
 #else
 #define ST7789_RST_RESET() asm("nop")
-#define ST7789_RST_SET() asm("nop")
+#define ST7789_RST_SET()   asm("nop")
 #endif
 
 #ifndef CFG_NO_CS
@@ -177,9 +179,5 @@ void st7789_tear_effect(uint8_t tear);
 
 /* Simple test function. */
 void st7789_test(void);
-
-#ifndef ST7789_ROTATION
-#error You should at least choose a display rotation!
-#endif
 
 #endif
