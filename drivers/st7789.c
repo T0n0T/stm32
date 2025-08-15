@@ -1,14 +1,17 @@
 #include "st7789.h"
+#include "board.h"
+#include "stm32h7xx_hal_gpio.h"
 
 #ifdef ST7789_USE_DMA
 #include <string.h>
-uint16_t DMA_MIN_SIZE = 16;
+const uint16_t DMA_MIN_SIZE = 16;
 /* If you're using DMA, then u need a "framebuffer" to store datas to be displayed.
  * If your MCU don't have enough RAM, please avoid using DMA(or set 5 to 1).
  * And if your MCU have enough RAM(even larger than full-frame size),
  * Then you can specify the framebuffer size to the full resolution below.
  */
-uint8_t display_buffer[ST7789_WIDTH * ST7789_HEIGHT] __attribute__((section("display"))); // 240x320 RGB565
+#define BUF_HOR_LEN 40
+uint8_t display_buffer[ST7789_WIDTH * BUF_HOR_LEN] __attribute__((section("display"))); // 240x320 RGB565
 #endif
 
 #define ST7789_DELAY_MS(x) HAL_Delay(x)
@@ -136,14 +139,14 @@ void st7789_init(void)
     GPIO_InitStruct.Pin   = ST7789_DC_PIN;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(ST7789_DC_PORT, &GPIO_InitStruct);
 
     gpio_clk_init(ST7789_BLK_PORT);
     GPIO_InitStruct.Pin   = ST7789_BLK_PIN;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_PULLDOWN;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(ST7789_BLK_PORT, &GPIO_InitStruct);
 #ifndef CFG_NO_RST
     gpio_clk_init(ST7789_RST_PORT);
@@ -222,8 +225,10 @@ void st7789_init(void)
     st7789_write_command(ST7789_NORON);  //	Normal Display on
     st7789_write_command(ST7789_DISPON); //	Main screen turned on
 
+    GPIO_SET_PIN(ST7789_BLK_PORT, ST7789_BLK_PIN);
     ST7789_DELAY_MS(50);
-    st7789_fill_window(BLACK); //	Fill with Black.
+    st7789_fill_window(GREEN); //	Fill with Black.
+
 }
 
 /**
@@ -238,7 +243,7 @@ void st7789_fill_window(uint16_t color)
     ST7789_SELECT();
 
 #ifdef ST7789_USE_DMA
-    for (i = 0; i < ST7789_HEIGHT; i++) {
+    for (i = 0; i < ST7789_HEIGHT / BUF_HOR_LEN; i++) {
         memset(display_buffer, color, sizeof(display_buffer));
         st7789_write_data(display_buffer, sizeof(display_buffer));
     }

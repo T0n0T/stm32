@@ -88,13 +88,16 @@ void BSP_init(void)
      *  but SystemCoreClock needs to be updated
      */
     cm_backtrace_init("build/stm32h7xx", "V1.0", "1.0.0");
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     board_init();
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
     i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
-    camera_init(); // Initialize Camera
-    // st7789_init();
+    // camera_init(); // Initialize Camera
+    st7789_init();
     // st7789_test();
     // lptimer_init();
     // wakeup_init(wakeup_handle);
@@ -124,9 +127,9 @@ void BSP_start(void)
 /*..........................................................................*/
 void QF_onStartup(void)
 {
-    camera_start((uint32_t)camera_buffer,
-                 sizeof(camera_buffer),
-                 1);
+    // camera_start((uint32_t)camera_buffer,
+    //              sizeof(camera_buffer),
+    //              1);
     // SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
     // NVIC_SetPriority(LPTIM1_IRQn, 1);
     // NVIC_SetPriority(EXTI0_IRQn, 1);
@@ -148,4 +151,13 @@ void BSP_ledOn(void)
 void BSP_ledOff(void)
 {
     led_off(LED_1);
+}
+
+void HAL_Delay(uint32_t Delay)
+{
+    uint32_t target_cycle = Delay * (SystemCoreClock / 1000);
+    DWT->CYCCNT = 0;
+    while (DWT->CYCCNT < target_cycle) {
+        __NOP();
+    }
 }

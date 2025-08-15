@@ -196,9 +196,15 @@ SECTIONS
   {
     . = ALIGN(8);
     *(camera)
-    *(display)
     . = ALIGN(8);
   } >RAM_D1
+
+  .media :
+  {
+    . = ALIGN(8);
+    *(display)
+    . = ALIGN(8);
+  } >RAM_D3
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

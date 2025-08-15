@@ -13,7 +13,7 @@
 extern SPI_HandleTypeDef ST7789_SPI_PORT;
 
 /* choose whether use DMA or not */
-#define ST7789_USE_DMA
+// #define ST7789_USE_DMA
 
 /* soft spi chip select */
 #ifndef CFG_NO_CS

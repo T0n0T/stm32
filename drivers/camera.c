@@ -86,9 +86,10 @@ static uint16_t camera_read_id(void)
 
 void camera_start(uint32_t buffer_address, uint32_t buffer_size, uint8_t is_predictive)
 {
-    HAL_DCMI_Resume(&hdcmi);
+    // HAL_DCMI_Resume(&hdcmi);
     // HAL_DMA_DeInit(&hdma_dcmi);
     // HAL_DMA_Init(&hdma_dcmi);
+    
     if (is_predictive) {
         HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_CONTINUOUS, buffer_address,
                            buffer_size);
@@ -494,6 +495,7 @@ void camera_init(void)
     extern void MX_DMA_Init(void);
     MX_DMA_Init();
 
+    // __HAL_DCMI_ENABLE_IT(&hdcmi, DCMI_IT_FRAME);
 #define OV5640_PWDN_PORT GPIOF
 #define OV5640_PWDN_PIN  GPIO_PIN_13
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -745,15 +747,15 @@ void camera_init(void)
         {OV5640_SYSTEM_CTROL0, 0x02}, // wake up from standby, bit[6]
     };
 
-    for (uint32_t i = 0; i < sizeof(OV5640_INIT_SEQ) / sizeof(OV5640_INIT_SEQ[0]);
+    for (uint32_t i = 0; i < sizeof(OV5640_INIT_Config) / sizeof(OV5640_INIT_Config[0]);
          i++) {
-        ov5640_write_reg16_byte(OV5640_INIT_SEQ[i][0], OV5640_INIT_SEQ[i][1]);
+        ov5640_write_reg16_byte(OV5640_INIT_Config[i][0], OV5640_INIT_Config[i][1]);
     }
-    camera_enable_mode(OV5640_DVP_MODE);
+    // camera_enable_mode(OV5640_DVP_MODE);
     camera_set_resolution(OV5640_R640x480);
-    camera_set_format(OV5640_RGB565);
-    camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
-                        OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
+    // camera_set_format(OV5640_RGB565);
+    // camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
+    //                     OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
     camera_crop(240, 320);
 }
 

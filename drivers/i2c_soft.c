@@ -1,4 +1,5 @@
 #include "i2c_soft.h"
+#include "cmsis_gcc.h"
 #include "stm32h723xx.h"
 #include "stm32h7xx_hal_gpio.h"
 
@@ -19,7 +20,7 @@ static void i2c_soft_delay(void)
     // 可根据实际系统时钟频率调整
     uint32_t delay_cycles = 800;
     while ((DWT->CYCCNT - start) < delay_cycles) {
-        // 空循环等待
+        __NOP();
     }
 }
 
@@ -53,9 +54,7 @@ void i2c_soft_init(i2c_soft_index_t index)
     if (index >= I2C_SOFT_MAX) {
         return;
     }
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
     i2c_soft_t* config = &i2c_soft_ins[index];
     // 配置SDA和SCL为开漏输出
     i2c_soft_sda_out(config);
