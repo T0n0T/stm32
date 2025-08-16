@@ -6,6 +6,11 @@
 #include <string.h>
 #include "stm32h7xx_hal.h"
 
+#define SRAM_SET_DTCM             __attribute__((section(".RAM_DTCM")))
+#define SRAM_SET_RAM_D1           __attribute__((section(".RAM_D1")))
+#define SRAM_SET_RAM_D2           __attribute__((section(".RAM_D2")))
+#define SRAM_SET_RAM_D3           __attribute__((section(".RAM_D3")))
+
 #define GPIO_SET_PIN(port, pin)   ((port)->BSRR = (pin))
 #define GPIO_RESET_PIN(port, pin) ((port)->BSRR = ((pin) << 16))
 #define GPIO_READ_PIN(port, pin)  (((port)->IDR & (pin)) != 0)

@@ -5,7 +5,7 @@
 #include "board.h"
 
 /* user configure */
-#define CFG_NO_CS
+// #define CFG_NO_CS
 #define CFG_NO_RST
 
 /* choose a Hardware SPI port to use. */
@@ -13,12 +13,12 @@
 extern SPI_HandleTypeDef ST7789_SPI_PORT;
 
 /* choose whether use DMA or not */
-// #define ST7789_USE_DMA
+#define ST7789_USE_DMA
 
 /* soft spi chip select */
 #ifndef CFG_NO_CS
-#define ST7789_CS_PORT ST7789_CS_GPIO_Port
-#define ST7789_CS_PIN  ST7789_CS_Pin
+#define ST7789_CS_PORT GPIOG
+#define ST7789_CS_PIN  GPIO_PIN_8
 #endif
 
 /* gpio hard reset */
@@ -140,8 +140,8 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
 #endif
 
 #ifndef CFG_NO_CS
-#define ST7789_SELECT()   GPIO_RESET_PIN(ST7789_CS_PORT, ST7789_CS_PIN, GPIO_PIN_RESET)
-#define ST7789_UNSELECT() GPIO_SET_PIN(ST7789_CS_PORT, ST7789_CS_PIN, GPIO_PIN_SET)
+#define ST7789_SELECT()   GPIO_RESET_PIN(ST7789_CS_PORT, ST7789_CS_PIN)
+#define ST7789_UNSELECT() GPIO_SET_PIN(ST7789_CS_PORT, ST7789_CS_PIN)
 #else
 #define ST7789_SELECT()   asm("nop")
 #define ST7789_UNSELECT() asm("nop")

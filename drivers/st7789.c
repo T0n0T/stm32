@@ -10,8 +10,19 @@ const uint16_t DMA_MIN_SIZE = 16;
  * And if your MCU have enough RAM(even larger than full-frame size),
  * Then you can specify the framebuffer size to the full resolution below.
  */
-#define BUF_HOR_LEN 40
-uint8_t display_buffer[ST7789_WIDTH * BUF_HOR_LEN] __attribute__((section("display"))); // 240x320 RGB565
+#define BUF_HOR_LEN 5
+SRAM_SET_RAM_D3 uint16_t display_buffer[ST7789_WIDTH * BUF_HOR_LEN]; // 240x320 RGB565
+
+void memset_16(uint16_t* buf, uint16_t value, uint32_t size)
+{
+    uint16_t swapped = (value >> 8) | (value << 8);
+    while (size > 0) {
+        *buf = swapped;
+        buf++;
+        size--;
+    }
+}
+
 #endif
 
 #define ST7789_DELAY_MS(x) HAL_Delay(x)
@@ -47,12 +58,14 @@ static void st7789_write_data(uint8_t* buff, size_t buff_size)
 #ifdef ST7789_USE_DMA
         if (DMA_MIN_SIZE <= buff_size) {
             HAL_SPI_Transmit_DMA(&ST7789_SPI_PORT, buff, chunk_size);
-            while (ST7789_SPI_PORT.hdmatx->State != HAL_DMA_STATE_READY) {}
+            while (ST7789_SPI_PORT.State != HAL_SPI_STATE_READY) {}
+            // HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
         } else
             HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
 #else
         HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
 #endif
+
         buff += chunk_size;
         buff_size -= chunk_size;
     }
@@ -148,6 +161,7 @@ void st7789_init(void)
     GPIO_InitStruct.Pull  = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(ST7789_BLK_PORT, &GPIO_InitStruct);
+
 #ifndef CFG_NO_RST
     gpio_clk_init(ST7789_RST_PORT);
     GPIO_InitStruct.Pin   = ST7789_RST_PIN;
@@ -228,7 +242,6 @@ void st7789_init(void)
     GPIO_SET_PIN(ST7789_BLK_PORT, ST7789_BLK_PIN);
     ST7789_DELAY_MS(50);
     st7789_fill_window(GREEN); //	Fill with Black.
-
 }
 
 /**
@@ -241,11 +254,10 @@ void st7789_fill_window(uint16_t color)
     uint16_t i;
     st7789_set_address_window(0, 0, ST7789_WIDTH - 1, ST7789_HEIGHT - 1);
     ST7789_SELECT();
-
 #ifdef ST7789_USE_DMA
     for (i = 0; i < ST7789_HEIGHT / BUF_HOR_LEN; i++) {
         memset(display_buffer, color, sizeof(display_buffer));
-        st7789_write_data(display_buffer, sizeof(display_buffer));
+        st7789_write_data((uint8_t*)display_buffer, sizeof(display_buffer));
     }
 #else
     uint16_t j;

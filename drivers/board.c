@@ -2,6 +2,8 @@
 
 void board_init(void)
 {
+    SCB_EnableICache();
+    SCB_EnableDCache();
     HAL_Init();
     extern void SystemClock_Config(void);
     SystemClock_Config();

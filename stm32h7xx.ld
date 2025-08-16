@@ -192,19 +192,46 @@ SECTIONS
     . = ALIGN(8);
   } >DTCMRAM
 
-  .media :
+  /* used by the startup to initialize data */
+  _siRAM_D1 = LOADADDR(.RAM_D1);
+  /* Initialized data sections goes into RAM_D1, load LMA copy after code */
+  .RAM_D1 :
   {
-    . = ALIGN(8);
-    *(camera)
-    . = ALIGN(8);
+    . = ALIGN(4);
+    _sRAM_D1 = .;        /* create a global symbol at data start */
+    *(.RAM_D1)           /* .data sections */
+    *(.RAM_D1*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D1 = .;        /* define a global symbol at data end */
   } >RAM_D1
 
-  .media :
+  /* Unitialized data sections goes into RAM_D2, load fill zero after code */
+  _siRAM_D2 = LOADADDR(.RAM_D2);
+  .RAM_D2 :
   {
-    . = ALIGN(8);
-    *(display)
-    . = ALIGN(8);
+    . = ALIGN(4);
+    _sRAM_D2 = .;        /* create a global symbol at data start */
+    *(.RAM_D2)           /* .data sections */
+    *(.RAM_D2*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D2 = .;        /* define a global symbol at data end */
+  } >RAM_D2              /*D2 will not goes to FLASH*/
+
+  /* Unitialized data sections goes into RAM_D3, load fill zero after code */
+  _siRAM_D3 = LOADADDR(.RAM_D3);
+  .RAM_D3 :
+  {
+    . = ALIGN(4);
+    _sRAM_D3 = .;        /* create a global symbol at data start */
+    *(.RAM_D3)           /* .data sections */
+    *(.RAM_D3*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3 = .;        /* define a global symbol at data end */
   } >RAM_D3
+
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

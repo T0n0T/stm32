@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 static bool sleep = false;
-static uint32_t __attribute__((section("camera"))) camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+static SRAM_SET_RAM_D1 uint32_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 /* Assertion handler  ======================================================*/
 Q_NORETURN Q_onAssert(char const* module, int_t id)
@@ -153,11 +153,11 @@ void BSP_ledOff(void)
     led_off(LED_1);
 }
 
-void HAL_Delay(uint32_t Delay)
-{
-    uint32_t target_cycle = Delay * (SystemCoreClock / 1000);
-    DWT->CYCCNT = 0;
-    while (DWT->CYCCNT < target_cycle) {
-        __NOP();
-    }
-}
+// void HAL_Delay(uint32_t Delay)
+// {
+//     uint32_t target_cycle = Delay * (SystemCoreClock / 1000);
+//     DWT->CYCCNT = 0;
+//     while (DWT->CYCCNT < target_cycle) {
+//         __NOP();
+//     }
+// }
