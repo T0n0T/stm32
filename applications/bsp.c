@@ -4,7 +4,7 @@
 #include "qpc.h" /* QP/C API */
 #include "bsp.h"
 #include "board.h"
-#include "blinky.h" /* Blinky Application interface */
+#include "uvc.h" /* Blinky Application interface */
 #include "led.h"
 #include "lptimer.h"
 #include "camera.h"
@@ -14,8 +14,9 @@
 #include "cm_backtrace.h"
 #include <stdint.h>
 
-static bool                     sleep = false;
-static SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+static bool                    sleep = false;
+static QEvt                    uvc_fram_evt;
+static QEvt                    uvc_pfc_evt;
 
 /* Assertion handler  ======================================================*/
 Q_NORETURN Q_onAssert(char const* module, int_t id)
@@ -98,16 +99,6 @@ void BSP_init(void)
     st7789_init();
     i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
     camera_init();             // Initialize Camera
-    camera_start((uint32_t)camera_buffer,
-                 sizeof(camera_buffer),
-                 1);
-    while (1) {
-        if (camera_ins.capture_ok == 1) {
-            camera_ins.capture_ok = 0;
-            st7789_draw_image(0, 0, 240, 320, (uint16_t*)camera_buffer);
-            led_toggle(LED_1);
-        }
-    }
     // st7789_test();
     // lptimer_init();
     // wakeup_init(wakeup_handle);
@@ -115,23 +106,22 @@ void BSP_init(void)
 
 void BSP_start(void)
 {
-    // initialize event pools
-    static QF_MPOOL_EL(QEvt) smlPoolSto[10];
-    QF_poolInit(smlPoolSto, sizeof(smlPoolSto), sizeof(smlPoolSto[0]));
-
     // initialize publish-subscribe
     static QSubscrList subscrSto[MAX_PUB_SIG];
     QActive_psInit(subscrSto, Q_DIM(subscrSto));
 
     // instantiate and start AOs/threads...
-    static QEvtPtr blinkyQueueSto[10];
-    Blinky_ctor();
-    QActive_start(AO_Blinky,
-                  1U,                    // QP prio. of the AO
-                  blinkyQueueSto,        // event queue storage
-                  Q_DIM(blinkyQueueSto), // queue length [events]
-                  (void*)0, 0U,          // no stack storage
-                  (void*)0);             // no initialization param
+    static QEvtPtr UVC_QueueSto[10];
+    UVC_ctor();
+    QActive_start(AO_UVC,
+                  1U,                  // QP prio. of the AO
+                  UVC_QueueSto,        // event queue storage
+                  Q_DIM(UVC_QueueSto), // queue length [events]
+                  (void*)0, 0U,        // no stack storage
+                  (void*)0);           // no initialization param
+
+    QEvt_ctor(&uvc_fram_evt, UVC_FRAME_SIG);
+    QEvt_ctor(&uvc_pfc_evt, UVC_PFC_SIG);
 }
 
 /*..........................................................................*/
@@ -148,16 +138,15 @@ void QF_onCleanup(void)
 {
 }
 
-/*..........................................................................*/
-void BSP_ledOn(void)
+void HAL_DCMI_FrameEventCallback(DCMI_HandleTypeDef* hdcmi)
 {
-    // led_on(LED_1);
+    /* Prevent unused argument(s) compilation warning */
+    UNUSED(hdcmi);
+    QACTIVE_POST_X(AO_UVC, &uvc_fram_evt, 4, 0U);
 }
 
-/*..........................................................................*/
-void BSP_ledOff(void)
+void HAL_DCMI_ErrorCallback(DCMI_HandleTypeDef* hdcmi)
 {
-    // led_off(LED_1);
 }
 
 // void HAL_Delay(uint32_t Delay)

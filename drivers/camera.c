@@ -13,17 +13,7 @@ extern DMA_HandleTypeDef  hdma_dcmi;
 
 camera_ins_t camera_ins;
 
-void HAL_DCMI_FrameEventCallback(DCMI_HandleTypeDef* hdcmi)
-{
-    /* Prevent unused argument(s) compilation warning */
-    UNUSED(hdcmi);
-
-    camera_ins.capture_ok = 1;
-}
-
-void HAL_DCMI_ErrorCallback(DCMI_HandleTypeDef* hdcmi)
-{
-}
+SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 static inline void ov5640_write_reg16_byte(uint16_t reg, uint8_t data)
 {
