@@ -14,12 +14,13 @@
 #include "cm_backtrace.h"
 #include <stdint.h>
 
-static bool                    sleep = false;
-static QEvt                    uvc_fram_evt;
-static QEvt                    uvc_pfc_evt;
+static bool sleep = false;
+static QEvt uvc_fram_evt;
+static QEvt uvc_pfc_evt;
+static void pfc_callback(DMA2D_HandleTypeDef* hdma2d);
 
-/* Assertion handler  ======================================================*/
-Q_NORETURN Q_onAssert(char const* module, int_t id)
+    /* Assertion handler  ======================================================*/
+    Q_NORETURN Q_onAssert(char const* module, int_t id)
 {
     /* TBD: Perform corrective actions and damage control
      * SPECIFIC to your particular system.
@@ -99,6 +100,10 @@ void BSP_init(void)
     st7789_init();
     i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
     camera_init();             // Initialize Camera
+    extern void MX_DMA2D_Init(void);
+    MX_DMA2D_Init();
+    extern DMA2D_HandleTypeDef hdma2d;
+    hdma2d.XferCpltCallback = pfc_callback;
     // st7789_test();
     // lptimer_init();
     // wakeup_init(wakeup_handle);
@@ -149,11 +154,19 @@ void HAL_DCMI_ErrorCallback(DCMI_HandleTypeDef* hdcmi)
 {
 }
 
-// void HAL_Delay(uint32_t Delay)
-// {
-//     uint32_t target_cycle = Delay * (SystemCoreClock / 1000);
-//     DWT->CYCCNT = 0;
-//     while (DWT->CYCCNT < target_cycle) {
-//         __NOP();
-//     }
-// }
+static void pfc_callback(DMA2D_HandleTypeDef* hdma2d)
+{
+    /* Prevent unused argument(s) compilation warning */
+    UNUSED(hdma2d);
+
+    QACTIVE_POST_X(AO_UVC, &uvc_pfc_evt, 4, 0U);
+}
+
+void HAL_Delay(uint32_t Delay)
+{
+    uint32_t target_cycle = Delay * (SystemCoreClock / 1000);
+    DWT->CYCCNT = 0;
+    while (DWT->CYCCNT < target_cycle) {
+        __NOP();
+    }
+}

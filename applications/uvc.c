@@ -38,9 +38,14 @@
 #include "qpc.h"
 #include "bsp.h"
 #include "uvc.h"
+#include "board.h"
 #include "led.h"
 #include "camera.h"
 #include "st7789.h"
+
+extern DMA2D_HandleTypeDef hdma2d;
+// SRAM_SET_RAM_D1 uint8_t disp[240 * 320 / 2];
+SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 //$declare${AOs::UVC} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
@@ -61,6 +66,7 @@ extern UVC UVC_inst;
 // protected:
 static QState UVC_initial(UVC * const me, void const * const par);
 static QState UVC_normal(UVC * const me, QEvt const * const e);
+static QState UVC_busy(UVC * const me, QEvt const * const e);
 //$enddecl${AOs::UVC} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 //$skip${QP_VERSION} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -94,9 +100,10 @@ static QState UVC_initial(UVC * const me, void const * const par) {
     //${AOs::UVC::SM::initial}
     (void)par; // unused parameter
     camera_start((uint32_t)camera_buffer, sizeof(camera_buffer), 1);
-    //QTimeEvt_armX(&me->healthEvt, BSP_TICKS_PER_SEC/2, BSP_TICKS_PER_SEC/2);
+    QTimeEvt_armX(&me->healthEvt, BSP_TICKS_PER_SEC/2, BSP_TICKS_PER_SEC/2);
 
     QS_FUN_DICTIONARY(&UVC_normal);
+    QS_FUN_DICTIONARY(&UVC_busy);
 
     return Q_TRAN(&UVC_normal);
 }
@@ -115,15 +122,35 @@ static QState UVC_normal(UVC * const me, QEvt const * const e) {
         case UVC_FRAME_SIG: {
             st7789_draw_image(0, 0, 240, 320, (uint16_t*)camera_buffer);
             status_ = Q_HANDLED();
-            break;
-        }
-        //${AOs::UVC::SM::normal::UVC_PFC}
-        case UVC_PFC_SIG: {
-            status_ = Q_HANDLED();
+            // HAL_DMA2D_Start_IT(&hdma2d, (uint32_t)camera_buffer, (uint32_t)disp, 240, 320);
+            // status_ = Q_TRAN(&UVC_busy);
             break;
         }
         default: {
             status_ = Q_SUPER(&QHsm_top);
+            break;
+        }
+    }
+    return status_;
+}
+
+//${AOs::UVC::SM::normal::busy} ..............................................
+static QState UVC_busy(UVC * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        //${AOs::UVC::SM::normal::busy::UVC_PFC}
+        case UVC_PFC_SIG: {
+            // st7789_draw_image(0, 0, 240, 320, (uint16_t*)disp);
+            status_ = Q_TRAN(&UVC_normal);
+            break;
+        }
+        //${AOs::UVC::SM::normal::busy::UVC_FRAME}
+        case UVC_FRAME_SIG: {
+            status_ = Q_TRAN(&UVC_busy);
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&UVC_normal);
             break;
         }
     }

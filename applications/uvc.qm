@@ -61,8 +61,8 @@ https://www.state-machine.com/qpc/exa.html</documentation>
     <initial target="../1">
      <action>(void)par; // unused parameter
 camera_start((uint32_t)camera_buffer, sizeof(camera_buffer), 1);
-//QTimeEvt_armX(&amp;me-&gt;healthEvt, BSP_TICKS_PER_SEC/2, BSP_TICKS_PER_SEC/2);</action>
-     <initial_glyph color="3" conn="2,3,5,1,36,6,-2">
+QTimeEvt_armX(&amp;me-&gt;healthEvt, BSP_TICKS_PER_SEC/2, BSP_TICKS_PER_SEC/2);</action>
+     <initial_glyph color="3" conn="2,3,5,1,38,6,-2">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -76,19 +76,30 @@ camera_start((uint32_t)camera_buffer, sizeof(camera_buffer), 1);
       </tran_glyph>
      </tran>
      <!--${AOs::UVC::SM::normal::UVC_FRAME}-->
-     <tran trig="UVC_FRAME">
-      <action>st7789_draw_image(0, 0, 240, 320, (uint16_t*)camera_buffer);</action>
-      <tran_glyph conn="2,12,3,-1,10">
+     <tran trig="UVC_FRAME" target="../2">
+      <action>HAL_DMA2D_Start_IT(&amp;hdma2d, (uint32_t)camera_buffer, (uint32_t)disp, 240, 320);</action>
+      <tran_glyph conn="2,14,3,3,12">
        <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
-     <!--${AOs::UVC::SM::normal::UVC_PFC}-->
-     <tran trig="UVC_PFC">
-      <tran_glyph conn="2,14,3,-1,14">
-       <action box="0,-2,10,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="2,6,34,18"/>
+     <!--${AOs::UVC::SM::normal::busy}-->
+     <state name="busy">
+      <!--${AOs::UVC::SM::normal::busy::UVC_PFC}-->
+      <tran trig="UVC_PFC" target="../..">
+       <action>st7789_draw_image(0, 0, 240, 320, (uint16_t*)disp);</action>
+       <tran_glyph conn="14,18,3,3,-12">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::UVC::SM::normal::busy::UVC_FRAME}-->
+      <tran trig="UVC_FRAME" target="..">
+       <tran_glyph conn="34,14,1,1,2,4,-2">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="14,10,20,12"/>
+     </state>
+     <state_glyph node="2,6,36,18"/>
     </state>
     <state_diagram size="83,91"/>
    </statechart>
@@ -124,9 +135,14 @@ $declare ${AOs::UVC_ctor}
    <text>#include &quot;qpc.h&quot;
 #include &quot;bsp.h&quot;
 #include &quot;uvc.h&quot;
+#include &quot;board.h&quot;
 #include &quot;led.h&quot;
 #include &quot;camera.h&quot;
 #include &quot;st7789.h&quot;
+
+extern DMA2D_HandleTypeDef hdma2d;
+SRAM_SET_RAM_D1 uint8_t disp[240 * 320 / 2];
+SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 $declare ${AOs::UVC}
 

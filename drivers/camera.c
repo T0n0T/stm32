@@ -13,8 +13,6 @@ extern DMA_HandleTypeDef  hdma_dcmi;
 
 camera_ins_t camera_ins;
 
-SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
-
 static inline void ov5640_write_reg16_byte(uint16_t reg, uint8_t data)
 {
     uint8_t buf[4] = {
@@ -119,8 +117,8 @@ void camera_crop(uint16_t want_x, uint16_t want_y)
             x = 640;
             y = 480;
             break;
-        default:
-            return;
+        // default:
+        //     return;
     }
     HAL_DCMI_ConfigCrop(&hdcmi, x - want_x, (y - want_y) / 2 - 1, want_x * 2 - 1, want_y - 1);
     HAL_DCMI_EnableCrop(&hdcmi);
@@ -256,16 +254,22 @@ void camera_set_resolution(uint8_t resolution)
 void camera_set_format(uint8_t format)
 {
     switch (format) {
-        case OV5640_YUV422:
-            ov5640_write_reg16_byte(OV5640_FORMAT_CTRL00, 0x30);
+        case OV5640_RGB565:
+            ov5640_write_reg16_byte(OV5640_FORMAT_CTRL00, 0x61);
             OV5640_DELAY_MS(1);
-            ov5640_write_reg16_byte(OV5640_FORMAT_MUX_CTRL, 0x00);
+            ov5640_write_reg16_byte(OV5640_FORMAT_MUX_CTRL, 0x01);
             OV5640_DELAY_MS(1);
             break;
         case OV5640_RGB888:
             ov5640_write_reg16_byte(OV5640_FORMAT_CTRL00, 0x23);
             OV5640_DELAY_MS(1);
             ov5640_write_reg16_byte(OV5640_FORMAT_MUX_CTRL, 0x01);
+            OV5640_DELAY_MS(1);
+            break;
+        case OV5640_YUV422:
+            ov5640_write_reg16_byte(OV5640_FORMAT_CTRL00, 0x30);
+            OV5640_DELAY_MS(1);
+            ov5640_write_reg16_byte(OV5640_FORMAT_MUX_CTRL, 0x00);
             OV5640_DELAY_MS(1);
             break;
         case OV5640_Y8:
@@ -291,12 +295,6 @@ void camera_set_format(uint8_t format)
             uint8_t tmp3006 = ov5640_read_reg16_byte(OV5640_CLOCK_ENABLE02);
             tmp3006 |= ((1 << 3) | (1 << 5));
             ov5640_write_reg16_byte(OV5640_CLOCK_ENABLE02, tmp3006);
-            break;
-        case OV5640_RGB565:
-            ov5640_write_reg16_byte(OV5640_FORMAT_CTRL00, 0x6f);
-            OV5640_DELAY_MS(1);
-            ov5640_write_reg16_byte(OV5640_FORMAT_MUX_CTRL, 0x01);
-            OV5640_DELAY_MS(1);
             break;
         default:
             break;
@@ -750,6 +748,15 @@ void camera_init(void)
     camera_set_format(OV5640_RGB565);
     camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
                         OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
+    // ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0X03); // 开始 group 3 的配置
+
+    // ov5640_write_reg16_byte(OV5640_TIMING_DVPHO_HIGH, 440 >> 8); // DVPHO，设置输出水平尺寸
+    // ov5640_write_reg16_byte(OV5640_TIMING_DVPHO_LOW, 440 & 0xff);
+    // ov5640_write_reg16_byte(OV5640_TIMING_DVPVO_HIGH, 330 >> 8); // DVPVO，设置输出垂直尺寸
+    // ov5640_write_reg16_byte(OV5640_TIMING_DVPVO_LOW, 330 & 0xff);
+
+    // ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0X13); // 结束配置
+    // ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0Xa3); // 启用设置
     camera_crop(240, 320);
 }
 

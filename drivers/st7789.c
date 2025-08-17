@@ -463,12 +463,12 @@ void st7789_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uin
 
     ST7789_SELECT();
     st7789_set_address_window(x, y, x + w - 1, y + h - 1);
-    for (uint16_t i = 0; i < w; i++)
-        for (uint16_t j = 0; j < h; j++) {
-            uint8_t tmp[] = {data[i * h + j] >> 8, data[i * h + j] & 0xFF};
-            st7789_write_data(tmp, sizeof(tmp));
-        }
-    // st7789_write_data((uint8_t*)data, sizeof(uint16_t) * w * h);
+    // for (uint16_t i = 0; i < w; i++)
+    //     for (uint16_t j = 0; j < h; j++) {
+    //         uint8_t tmp[] = {data[i * h + j] >> 8, data[i * h + j] & 0xFF};
+    //         st7789_write_data(tmp, sizeof(tmp));
+    //     }
+    st7789_write_data((uint8_t*)data, sizeof(uint16_t) * w * h);
     ST7789_UNSELECT();
 }
 
