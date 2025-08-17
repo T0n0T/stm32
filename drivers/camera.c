@@ -1,8 +1,6 @@
 #include "camera.h"
 #include "board.h"
 #include "i2c_soft.h"
-#include "stm32h7xx_hal_dcmi.h"
-#include "stm32h7xx_hal_gpio.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -89,7 +87,7 @@ void camera_start(uint32_t buffer_address, uint32_t buffer_size, uint8_t is_pred
     // HAL_DCMI_Resume(&hdcmi);
     // HAL_DMA_DeInit(&hdma_dcmi);
     // HAL_DMA_Init(&hdma_dcmi);
-    
+
     if (is_predictive) {
         HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_CONTINUOUS, buffer_address,
                            buffer_size);
@@ -108,28 +106,28 @@ void camera_stop(void)
 
 void camera_crop(uint16_t want_x, uint16_t want_y)
 {
-    uint16_t x = 0;
-    uint16_t y = 0;
-    switch (camera_ins.resolution) {
-        case OV5640_R160x120: // 160x120
-            x = 160;
-            y = 120;
-            break;
-        case OV5640_R320x240: // 320x240
-            x = 320;
-            y = 240;
-            break;
-        case OV5640_R480x272: // 480x272
-            x = 480;
-            y = 272;
-            break;
-        case OV5640_R640x480: // 640x480
-            x = 640;
-            y = 480;
-            break;
-        default:
-            return;
-    }
+    uint16_t x = 440;
+    uint16_t y = 330;
+    // switch (camera_ins.resolution) {
+    //     case OV5640_R160x120: // 160x120
+    //         x = 160;
+    //         y = 120;
+    //         break;
+    //     case OV5640_R320x240: // 320x240
+    //         x = 320;
+    //         y = 240;
+    //         break;
+    //     case OV5640_R480x272: // 480x272
+    //         x = 480;
+    //         y = 272;
+    //         break;
+    //     case OV5640_R640x480: // 640x480
+    //         x = 640;
+    //         y = 480;
+    //         break;
+    //     default:
+    //         return;
+    // }
     HAL_DCMI_ConfigCrop(&hdcmi, x - want_x, (y - want_y) / 2 - 1, want_x * 2 - 1, want_y - 1);
     HAL_DCMI_EnableCrop(&hdcmi);
 }
@@ -170,7 +168,7 @@ void camera_set_polarity(uint8_t pclk_polarity, uint8_t href_polarity,
 {
     uint8_t tmp4740 =
         ((pclk_polarity << 5) | (href_polarity << 1) | vsync_polarity);
-    ov5640_write_reg16_byte(OV5640_POLARITY_CTRL, 0x21);
+    ov5640_write_reg16_byte(OV5640_POLARITY_CTRL, tmp4740);
 }
 
 void camera_set_resolution(uint8_t resolution)
@@ -227,38 +225,38 @@ void camera_set_resolution(uint8_t resolution)
         default:
             break;
     }
-    // ov5640_write_reg16_byte(OV5640_SC_PLL_CONTRL1, 0x11);     // PLL
-    // ov5640_write_reg16_byte(OV5640_SC_PLL_CONTRL2, 0x46);     // PLL
-    // ov5640_write_reg16_byte(OV5640_LIGHTMETER1_TH_LOW, 0x08); // light meter 1 threshold [7:0]
-    // ov5640_write_reg16_byte(OV5640_TIMING_TC_REG20, 0x41);    // Sensor flip off, ISP flip on
-    // ov5640_write_reg16_byte(OV5640_TIMING_TC_REG21, 0x07);    // Sensor mirror on, ISP mirror on, H binning on
+    ov5640_write_reg16_byte(OV5640_SC_PLL_CONTRL1, 0x11);     // PLL
+    ov5640_write_reg16_byte(OV5640_SC_PLL_CONTRL2, 0x46);     // PLL
+    ov5640_write_reg16_byte(OV5640_LIGHTMETER1_TH_LOW, 0x08); // light meter 1 threshold [7:0]
+    ov5640_write_reg16_byte(OV5640_TIMING_TC_REG20, 0x41);    // Sensor flip off, ISP flip on
+    ov5640_write_reg16_byte(OV5640_TIMING_TC_REG21, 0x07);    // Sensor mirror on, ISP mirror on, H binning on
 
-    // ov5640_write_reg16_byte(0x3618, 0x00);
-    // ov5640_write_reg16_byte(0x3612, 0x29);
-    // ov5640_write_reg16_byte(0x3709, 0x52);
-    // ov5640_write_reg16_byte(0x370c, 0x03);
-    // ov5640_write_reg16_byte(OV5640_AEC_CTRL02, 0x17); // 60Hz max exposure, night mode 5fps
-    // ov5640_write_reg16_byte(OV5640_AEC_CTRL03, 0x10); // 60Hz max exposure
-    // // banding filters are calculated automatically in camera driver
-    // // ov5640_write_reg16_byte(OV5640_AEC_B50_STEP_HIGH, 0x01); // B50 step
-    // // ov5640_write_reg16_byte(OV5640_AEC_B50_STEP_LOW, 0x27); // B50 step
-    // // ov5640_write_reg16_byte(OV5640_AEC_B60_STEP_HIGH, 0x00); // B60 step
-    // // ov5640_write_reg16_byte(OV5640_AEC_B60_STEP_LOW, 0xf6); // B60 step
-    // // ov5640_write_reg16_byte(OV5640_AEC_CTRL0D, 0x04); // 60Hz max band
-    // // ov5640_write_reg16_byte(OV5640_AEC_CTRL0E, 0x03); // 50Hz max band
-    // ov5640_write_reg16_byte(OV5640_AEC_MAX_EXPO_HIGH, 0x17); // 50Hz max exposure, night mode 5fps
-    // ov5640_write_reg16_byte(OV5640_AEC_MAX_EXPO_LOW, 0x10);  // 50Hz max exposure
-    // ov5640_write_reg16_byte(OV5640_BLC_CTRL04, 0x02);        // BLC 2 lines
-    // ov5640_write_reg16_byte(OV5640_SYSREM_RESET02, 0x1c);    // reset JFIFO, SFIFO, JPEG
-    // ov5640_write_reg16_byte(OV5640_CLOCK_ENABLE02, 0xc3);    // disable clock of JPEG2x, JPEG
-    // ov5640_write_reg16_byte(OV5640_JPG_MODE_SELECT, 0x03);   // JPEG mode 3
-    // ov5640_write_reg16_byte(OV5640_JPEG_CTRL07, 0x04);       // Quantization scale
-    // ov5640_write_reg16_byte(0x460b, 0x35);
-    // ov5640_write_reg16_byte(OV5640_VFIFO_CTRL0C, 0x22);
-    // ov5640_write_reg16_byte(OV5640_PCLK_PERIOD, 0x22);   // DVP CLK divider
-    // ov5640_write_reg16_byte(0x3824, 0x02);               // DVP CLK divider
-    // ov5640_write_reg16_byte(OV5640_ISP_CONTROL01, 0xa3); // SDE on, scale on, UV average off, color matrix on, AWB on
-    // ov5640_write_reg16_byte(OV5640_AEC_PK_MANUAL, 0x00); // AEC/AGC on
+    ov5640_write_reg16_byte(0x3618, 0x00);
+    ov5640_write_reg16_byte(0x3612, 0x29);
+    ov5640_write_reg16_byte(0x3709, 0x52);
+    ov5640_write_reg16_byte(0x370c, 0x03);
+    ov5640_write_reg16_byte(OV5640_AEC_CTRL02, 0x17); // 60Hz max exposure, night mode 5fps
+    ov5640_write_reg16_byte(OV5640_AEC_CTRL03, 0x10); // 60Hz max exposure
+    // banding filters are calculated automatically in camera driver
+    // ov5640_write_reg16_byte(OV5640_AEC_B50_STEP_HIGH, 0x01); // B50 step
+    // ov5640_write_reg16_byte(OV5640_AEC_B50_STEP_LOW, 0x27); // B50 step
+    // ov5640_write_reg16_byte(OV5640_AEC_B60_STEP_HIGH, 0x00); // B60 step
+    // ov5640_write_reg16_byte(OV5640_AEC_B60_STEP_LOW, 0xf6); // B60 step
+    // ov5640_write_reg16_byte(OV5640_AEC_CTRL0D, 0x04); // 60Hz max band
+    // ov5640_write_reg16_byte(OV5640_AEC_CTRL0E, 0x03); // 50Hz max band
+    ov5640_write_reg16_byte(OV5640_AEC_MAX_EXPO_HIGH, 0x17); // 50Hz max exposure, night mode 5fps
+    ov5640_write_reg16_byte(OV5640_AEC_MAX_EXPO_LOW, 0x10);  // 50Hz max exposure
+    ov5640_write_reg16_byte(OV5640_BLC_CTRL04, 0x02);        // BLC 2 lines
+    ov5640_write_reg16_byte(OV5640_SYSREM_RESET02, 0x1c);    // reset JFIFO, SFIFO, JPEG
+    ov5640_write_reg16_byte(OV5640_CLOCK_ENABLE02, 0xc3);    // disable clock of JPEG2x, JPEG
+    ov5640_write_reg16_byte(OV5640_JPG_MODE_SELECT, 0x03);   // JPEG mode 3
+    ov5640_write_reg16_byte(OV5640_JPEG_CTRL07, 0x04);       // Quantization scale
+    ov5640_write_reg16_byte(0x460b, 0x35);
+    ov5640_write_reg16_byte(OV5640_VFIFO_CTRL0C, 0x22);
+    ov5640_write_reg16_byte(OV5640_PCLK_PERIOD, 0x22);   // DVP CLK divider
+    ov5640_write_reg16_byte(0x3824, 0x02);               // DVP CLK divider
+    ov5640_write_reg16_byte(OV5640_ISP_CONTROL01, 0xa3); // SDE on, scale on, UV average off, color matrix on, AWB on
+    ov5640_write_reg16_byte(OV5640_AEC_PK_MANUAL, 0x00); // AEC/AGC on
 }
 
 void camera_set_format(uint8_t format)
@@ -489,11 +487,11 @@ void camera_set_mirror_flip(uint8_t mode)
 
 void camera_init(void)
 {
-    extern void MX_DCMI_Init(void);
-    MX_DCMI_Init();
-
     extern void MX_DMA_Init(void);
     MX_DMA_Init();
+
+    extern void MX_DCMI_Init(void);
+    MX_DCMI_Init();
 
     // __HAL_DCMI_ENABLE_IT(&hdcmi, DCMI_IT_FRAME);
 #define OV5640_PWDN_PORT GPIOF
@@ -750,12 +748,18 @@ void camera_init(void)
     for (uint32_t i = 0; i < sizeof(OV5640_INIT_Config) / sizeof(OV5640_INIT_Config[0]);
          i++) {
         ov5640_write_reg16_byte(OV5640_INIT_Config[i][0], OV5640_INIT_Config[i][1]);
+        OV5640_DELAY_MS(1);
     }
-    // camera_enable_mode(OV5640_DVP_MODE);
+
+    for (uint32_t i = 0; i < sizeof(OV5640_INIT_SEQ) / sizeof(OV5640_INIT_SEQ[0]);
+         i++) {
+        ov5640_write_reg16_byte(OV5640_INIT_SEQ[i][0], OV5640_INIT_SEQ[i][1]);
+    }
+    camera_enable_mode(OV5640_DVP_MODE);
     camera_set_resolution(OV5640_R640x480);
-    // camera_set_format(OV5640_RGB565);
-    // camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
-    //                     OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
+    camera_set_format(OV5640_RGB565);
+    camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
+                        OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
     camera_crop(240, 320);
 }
 

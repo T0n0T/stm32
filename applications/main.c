@@ -29,19 +29,12 @@
 #include "qpc.h"    // QP/C real-time event framework
 #include "blinky.h" // Blinky Application interface
 #include "bsp.h"    // Board Support Package
-#include "board.h"
-#include "st7789.h"
-
+                    
 //............................................................................
 int main()
 {
-    board_init();
-    st7789_init();
-    while (1) {
-    
-    }
-    // QF_init();       // initialize the framework and the underlying RT kernel
-    // BSP_init();      // initialize the BSP
-    // BSP_start();     // start the AOs/Threads
-    // return QF_run(); // run the QF application
+    QF_init();       // initialize the framework and the underlying RT kernel
+    BSP_init();      // initialize the BSP
+    BSP_start();     // start the AOs/Threads
+    return QF_run(); // run the QF application
 }

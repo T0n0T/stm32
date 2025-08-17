@@ -14,8 +14,8 @@
 #include "cm_backtrace.h"
 #include <stdint.h>
 
-static bool sleep = false;
-static SRAM_SET_RAM_D1 uint32_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+static bool                     sleep = false;
+static SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 /* Assertion handler  ======================================================*/
 Q_NORETURN Q_onAssert(char const* module, int_t id)
@@ -95,9 +95,19 @@ void BSP_init(void)
     led_init();   /* initialize the LEDs */
     usart_init(); /* initialize the USART */
     printf("BSP_init: SystemCoreClock = %lu Hz\n", SystemCoreClock);
-    i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
-    // camera_init(); // Initialize Camera
     st7789_init();
+    i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
+    camera_init();             // Initialize Camera
+    camera_start((uint32_t)camera_buffer,
+                 sizeof(camera_buffer),
+                 1);
+    while (1) {
+        if (camera_ins.capture_ok == 1) {
+            camera_ins.capture_ok = 0;
+            st7789_draw_image(0, 0, 240, 320, (uint16_t*)camera_buffer);
+            led_toggle(LED_1);
+        }
+    }
     // st7789_test();
     // lptimer_init();
     // wakeup_init(wakeup_handle);
@@ -127,9 +137,6 @@ void BSP_start(void)
 /*..........................................................................*/
 void QF_onStartup(void)
 {
-    // camera_start((uint32_t)camera_buffer,
-    //              sizeof(camera_buffer),
-    //              1);
     // SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
     // NVIC_SetPriority(LPTIM1_IRQn, 1);
     // NVIC_SetPriority(EXTI0_IRQn, 1);
@@ -144,13 +151,13 @@ void QF_onCleanup(void)
 /*..........................................................................*/
 void BSP_ledOn(void)
 {
-    led_on(LED_1);
+    // led_on(LED_1);
 }
 
 /*..........................................................................*/
 void BSP_ledOff(void)
 {
-    led_off(LED_1);
+    // led_off(LED_1);
 }
 
 // void HAL_Delay(uint32_t Delay)

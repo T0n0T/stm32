@@ -692,10 +692,10 @@
 /* Polarity */
 #define OV5640_POLARITY_PCLK_LOW            0x00U /* Signal Active Low          */
 #define OV5640_POLARITY_PCLK_HIGH           0x01U /* Signal Active High         */
-#define OV5640_POLARITY_HREF_LOW            0x01U /* Signal Active Low          */
-#define OV5640_POLARITY_HREF_HIGH           0x00U /* Signal Active High         */
-#define OV5640_POLARITY_VSYNC_LOW           0x00U /* Signal Active Low          */
-#define OV5640_POLARITY_VSYNC_HIGH          0x01U /* Signal Active High         */
+#define OV5640_POLARITY_HREF_LOW            0x00U /* Signal Active Low          */
+#define OV5640_POLARITY_HREF_HIGH           0x01U /* Signal Active High         */
+#define OV5640_POLARITY_VSYNC_LOW           0x01U /* Signal Active Low          */
+#define OV5640_POLARITY_VSYNC_HIGH          0x00U /* Signal Active High         */
 
 /* Mirror/Flip */
 #define OV5640_MIRROR_FLIP_NONE             0x00U /* Set camera normal mode     */
