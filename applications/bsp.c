@@ -19,8 +19,8 @@ static QEvt uvc_fram_evt;
 static QEvt uvc_pfc_evt;
 static void pfc_callback(DMA2D_HandleTypeDef* hdma2d);
 
-    /* Assertion handler  ======================================================*/
-    Q_NORETURN Q_onAssert(char const* module, int_t id)
+/* Assertion handler  ======================================================*/
+Q_NORETURN Q_onAssert(char const* module, int_t id)
 {
     /* TBD: Perform corrective actions and damage control
      * SPECIFIC to your particular system.
@@ -105,7 +105,6 @@ void BSP_init(void)
     extern DMA2D_HandleTypeDef hdma2d;
     hdma2d.Instance         = DMA2D;
     hdma2d.XferCpltCallback = pfc_callback;
-    // st7789_test();
     // lptimer_init();
     // wakeup_init(wakeup_handle);
 }

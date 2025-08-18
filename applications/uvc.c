@@ -44,8 +44,8 @@
 #include "st7789.h"
 
 extern DMA2D_HandleTypeDef hdma2d;
-SRAM_SET_RAM_D1 uint32_t disp[240 * 320 / 2];
-SRAM_SET_RAM_D1 uint32_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+SRAM_SET_RAM_D1 uint32_t   disp[240 * 320 / 2];
+SRAM_SET_RAM_D1 uint32_t   camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 /**
  * @brief  DMA2D conversion from YCbCr (video output) to RGB (Display frame buffer)
@@ -92,6 +92,46 @@ void dma2d_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t
     DMA2D->CR |= DMA2D_CR_START;
 }
 
+void DMA2D_Copy_YCbCr_To_RGB_v(uint32_t* pSrc, uint32_t* pDst,
+                               uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize)
+{
+    uint32_t ss01; // 转换c数
+    uint32_t s24x;
+
+    uint32_t cssMode         = 0;
+    uint32_t inputLineOffset = 0;
+    uint32_t destination     = 0;
+
+    cssMode         = DMA2D_CSS_422;
+    s24x            = 32;
+    inputLineOffset = xsize % 16;
+    if (inputLineOffset != 0) {
+        inputLineOffset = 16 - inputLineOffset;
+    }
+
+    ss01 = ysize / 16; // 下次转换增加地址
+
+    while (ss01--) {
+        // 输出地址，乘以2的对RGB565，如果输出格式是ARGB8888，需要乘以4
+        destination = (uint32_t)pDst + ((y * 240) + x) * 2 + 240 * 32 * ss01;
+
+        DMA2D->CR  = 0x00010000UL | (1 << 9);
+        DMA2D->OOR = 240 - xsize;
+
+        DMA2D->OPFCCR  = DMA2D_OUTPUT_RGB565 | (DMA2D_REGULAR_ALPHA << 20) | (DMA2D_RB_REGULAR << 21);
+        DMA2D->FGPFCCR = DMA2D_INPUT_YCBCR | (DMA2D_REPLACE_ALPHA << 16) | (DMA2D_REGULAR_ALPHA << 20) | (DMA2D_RB_REGULAR << 21) | (0xFFU << 24) | (cssMode << 18);
+        DMA2D->FGOR    = inputLineOffset;
+        DMA2D->NLR     = (uint32_t)(xsize << 16) | 16; // 每次转换16行
+
+        DMA2D->OMAR = (uint32_t)destination;
+
+        DMA2D->FGMAR = (uint32_t)pSrc + (xsize + inputLineOffset) * s24x * ss01;
+
+        DMA2D->CR |= DMA2D_CR_START;
+        while (DMA2D->CR & DMA2D_CR_START) {}
+    }
+}
+
 void soft_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t ysize)
 {
     uint8_t*  pSrc = (uint8_t*)Src;
@@ -126,7 +166,7 @@ void soft_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t 
             // 打包为RGB565格式：{r[4:0],g[5:0],b[4:0]}
             uint16_t rgb565_0 = ((R0 & 0xF8) << 8) | ((G0 & 0xFC) << 3) | (B0 >> 3);
             // st7789 需要字节交换
-            *pDst++           = (rgb565_0 << 8) | (rgb565_0 >> 8);
+            *pDst++ = (rgb565_0 << 8) | (rgb565_0 >> 8);
 
             // 转换第二个像素 (Y1UV)
             int16_t R1 = Y1 + ((1436 * V_bias) >> 10);
@@ -141,7 +181,7 @@ void soft_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t 
             // 打包为RGB565格式
             uint16_t rgb565_1 = ((R1 & 0xF8) << 8) | ((G1 & 0xFC) << 3) | (B1 >> 3);
             // st7789 需要字节交换
-            *pDst++           = (rgb565_1 << 8) | (rgb565_1 >> 8);
+            *pDst++ = (rgb565_1 << 8) | (rgb565_1 >> 8);
         }
 
         // 如果宽度是奇数，处理最后一个像素
@@ -165,7 +205,7 @@ void soft_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t 
 
             uint16_t rgb565_0 = ((R0 & 0xF8) << 8) | ((G0 & 0xFC) << 3) | (B0 >> 3);
             // st7789 需要字节交换
-            *pDst++           = (rgb565_0 << 8) | (rgb565_0 >> 8);
+            *pDst++ = (rgb565_0 << 8) | (rgb565_0 >> 8);
         }
     }
 }
@@ -174,39 +214,40 @@ void soft_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t 
 
 //${AOs::UVC} ................................................................
 typedef struct UVC {
-// protected:
+    // protected:
     QActive super;
 
-// private:
+    // private:
     QTimeEvt timeEvt;
 
-// public:
+    // public:
     QTimeEvt healthEvt;
 } UVC;
 
 extern UVC UVC_inst;
 
 // protected:
-static QState UVC_initial(UVC * const me, void const * const par);
-static QState UVC_normal(UVC * const me, QEvt const * const e);
-static QState UVC_busy(UVC * const me, QEvt const * const e);
+static QState UVC_initial(UVC* const me, void const* const par);
+static QState UVC_normal(UVC* const me, QEvt const* const e);
+static QState UVC_busy(UVC* const me, QEvt const* const e);
 //$enddecl${AOs::UVC} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //$skip${QP_VERSION} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // Check for the minimum required QP version
-#if (QP_VERSION < 730U) || (QP_VERSION != ((QP_RELEASE^4294967295U)%0x2710U))
+#if (QP_VERSION < 730U) || (QP_VERSION != ((QP_RELEASE ^ 4294967295U) % 0x2710U))
 #error qpc version 7.3.0 or higher required
 #endif
 //$endskip${QP_VERSION} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //$define${AOs::AO_UVC} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 //${AOs::AO_UVC} .............................................................
-QActive * const AO_UVC = &UVC_inst.super;
+QActive* const AO_UVC = &UVC_inst.super;
 //$enddef${AOs::AO_UVC} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //$define${AOs::UVC_ctor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 //${AOs::UVC_ctor} ...........................................................
-void UVC_ctor(void) {
-    UVC * const me = &UVC_inst;
+void UVC_ctor(void)
+{
+    UVC* const me = &UVC_inst;
     QActive_ctor(&me->super, Q_STATE_CAST(&UVC_initial));
     QTimeEvt_ctorX(&me->timeEvt, &me->super, TIMEOUT_SIG, 0U);
     QTimeEvt_ctorX(&me->healthEvt, &me->super, UVC_HEALTH_SIG, 0U);
@@ -218,11 +259,12 @@ void UVC_ctor(void) {
 UVC UVC_inst;
 
 //${AOs::UVC::SM} ............................................................
-static QState UVC_initial(UVC * const me, void const * const par) {
+static QState UVC_initial(UVC* const me, void const* const par)
+{
     //${AOs::UVC::SM::initial}
     (void)par; // unused parameter
-    camera_start((uint32_t)camera_buffer, sizeof(camera_buffer)/sizeof(uint32_t), 1);
-    QTimeEvt_armX(&me->healthEvt, BSP_TICKS_PER_SEC/2, BSP_TICKS_PER_SEC/2);
+    camera_start((uint32_t)camera_buffer, sizeof(camera_buffer) / sizeof(uint32_t), 1);
+    QTimeEvt_armX(&me->healthEvt, BSP_TICKS_PER_SEC / 2, BSP_TICKS_PER_SEC / 2);
 
     QS_FUN_DICTIONARY(&UVC_normal);
     QS_FUN_DICTIONARY(&UVC_busy);
@@ -231,7 +273,8 @@ static QState UVC_initial(UVC * const me, void const * const par) {
 }
 
 //${AOs::UVC::SM::normal} ....................................................
-static QState UVC_normal(UVC * const me, QEvt const * const e) {
+static QState UVC_normal(UVC* const me, QEvt const* const e)
+{
     QState status_;
     switch (e->sig) {
         //${AOs::UVC::SM::normal::UVC_HEALTH}
@@ -243,6 +286,7 @@ static QState UVC_normal(UVC * const me, QEvt const * const e) {
         //${AOs::UVC::SM::normal::UVC_FRAME}
         case UVC_FRAME_SIG: {
             soft_y422_to_rgb565(camera_buffer, disp, 240, 320);
+            // DMA2D_Copy_YCbCr_To_RGB_v(camera_buffer, disp, 240, 320, 240, 320);
             st7789_draw_image(0, 0, 240, 320, (uint16_t*)disp);
             status_ = Q_HANDLED();
             // HAL_DMA2D_Start_IT(&hdma2d, (uint32_t)camera_buffer, (uint32_t)disp, 240, 320);
@@ -258,7 +302,8 @@ static QState UVC_normal(UVC * const me, QEvt const * const e) {
 }
 
 //${AOs::UVC::SM::normal::busy} ..............................................
-static QState UVC_busy(UVC * const me, QEvt const * const e) {
+static QState UVC_busy(UVC* const me, QEvt const* const e)
+{
     QState status_;
     switch (e->sig) {
         //${AOs::UVC::SM::normal::busy::UVC_PFC}

@@ -259,7 +259,7 @@ void st7789_fill_window(uint16_t color)
     ST7789_SELECT();
 #ifdef ST7789_USE_DMA
     for (i = 0; i < ST7789_HEIGHT / BUF_HOR_LEN; i++) {
-        memset(display_buffer, color, sizeof(display_buffer));
+        memset_16(display_buffer, color, sizeof(display_buffer)/sizeof(uint16_t));
         st7789_write_data((uint8_t*)display_buffer, sizeof(display_buffer));
     }
 #else
