@@ -5,7 +5,7 @@
 #include "board.h"
 
 /* user configure */
-// #define CFG_NO_CS
+#define CFG_NO_CS
 #define CFG_NO_RST
 
 /* choose a Hardware SPI port to use. */

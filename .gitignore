@@ -8,3 +8,4 @@ firmware/CubeMX/*
 **/JLinkLog.txt
 **/JLinkSettings.ini
 
+*.qms

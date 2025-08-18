@@ -60,7 +60,7 @@ https://www.state-machine.com/qpc/exa.html</documentation>
     <!--${AOs::UVC::SM::initial}-->
     <initial target="../1">
      <action>(void)par; // unused parameter
-camera_start((uint32_t)camera_buffer, sizeof(camera_buffer), 1);
+camera_start((uint32_t)camera_buffer, sizeof(camera_buffer)/sizeof(uint32_t), 1);
 QTimeEvt_armX(&amp;me-&gt;healthEvt, BSP_TICKS_PER_SEC/2, BSP_TICKS_PER_SEC/2);</action>
      <initial_glyph color="3" conn="2,3,5,1,38,6,-2">
       <action box="0,-2,6,2"/>
@@ -141,11 +141,133 @@ $declare ${AOs::UVC_ctor}
 #include &quot;st7789.h&quot;
 
 extern DMA2D_HandleTypeDef hdma2d;
-SRAM_SET_RAM_D1 uint8_t disp[240 * 320 / 2];
-SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+SRAM_SET_RAM_D1 uint32_t disp[240 * 320 / 2];
+SRAM_SET_RAM_D1 uint32_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+
+/**
+ * @brief  DMA2D conversion from YCbCr (video output) to RGB (Display frame buffer)
+ * @param  Src : Source buffer pointer
+ * @param  Dst : Destination buffer pointer
+ * @param  xsize: Horizontal size of the frame buffer
+ * @param  ysize: Vertical size of the frame buffer
+ * @retval None
+ */
+void dma2d_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t ysize)
+{
+    uint32_t inputLineOffset = 0;
+    uint32_t regValue, regMask;
+
+    inputLineOffset = xsize % 16;
+    if (inputLineOffset != 0) {
+        inputLineOffset = 16 - inputLineOffset;
+    }
+
+    regValue = DMA2D_INPUT_YCBCR | (DMA2D_REPLACE_ALPHA &lt;&lt; 16) |
+               (DMA2D_REGULAR_ALPHA &lt;&lt; 20) |
+               (DMA2D_RB_REGULAR &lt;&lt; 21) |
+               (0xFFU &lt;&lt; 24) |
+               (DMA2D_CSS_422 &lt;&lt; 18);
+
+    regMask = DMA2D_BGPFCCR_CM | DMA2D_BGPFCCR_AM | DMA2D_BGPFCCR_ALPHA | DMA2D_BGPFCCR_AI | DMA2D_BGPFCCR_RBS | DMA2D_FGPFCCR_CSS;
+
+    /* Setup DMA2D Configuration */
+    DMA2D-&gt;CR     = 0x00010000UL | (1 &lt;&lt; 9);
+    DMA2D-&gt;OPFCCR = DMA2D_OUTPUT_RGB565;
+    DMA2D-&gt;OOR    = 240 - xsize;
+    DMA2D-&gt;OPFCCR |= (DMA2D_REGULAR_ALPHA &lt;&lt; 20);
+    DMA2D-&gt;OPFCCR |= (DMA2D_RB_REGULAR &lt;&lt; 21);
+    DMA2D-&gt;FGPFCCR |= (regMask &amp; regValue);
+    DMA2D-&gt;FGOR  = inputLineOffset;
+    DMA2D-&gt;NLR   = (uint32_t)(xsize &lt;&lt; 16) | (uint32_t)ysize;
+    DMA2D-&gt;OMAR  = (uint32_t)Dst;
+    DMA2D-&gt;FGMAR = (uint32_t)Src;
+
+    /* Enable the transfer complete, transfer error and configuration error interrupts */
+    DMA2D-&gt;CR |= DMA2D_IT_TC | DMA2D_IT_TE | DMA2D_IT_CE;
+
+    /* Enable the Peripheral */
+    DMA2D-&gt;CR |= DMA2D_CR_START;
+}
+
+void soft_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t ysize)
+{
+    uint8_t*  pSrc = (uint8_t*)Src;
+    uint16_t* pDst = (uint16_t*)Dst;
+
+    // 确保宽度是偶数，因为YUYV422格式每两个像素共享一个U和V
+    uint16_t width = (xsize &gt;&gt; 1) &lt;&lt; 1;
+
+    for (uint16_t y = 0; y &lt; ysize; y++) {
+        for (uint16_t x = 0; x &lt; width; x += 2) {
+            // YUYV422格式：Y0 U Y1 V (4字节表示2个像素)
+            uint8_t Y0 = *pSrc++;
+            uint8_t U  = *pSrc++;
+            uint8_t Y1 = *pSrc++;
+            uint8_t V  = *pSrc++;
+
+            // 将U,V从[0,255]范围转换到[-128,127]
+            int16_t U_bias = U - 128;
+            int16_t V_bias = V - 128;
+
+            // 转换第一个像素 (Y0UV)
+            // 使用整数运算提高效率，乘法系数已经左移10位
+            int16_t R0 = Y0 + ((1436 * V_bias) &gt;&gt; 10);
+            int16_t G0 = Y0 - ((352 * U_bias + 731 * V_bias) &gt;&gt; 10);
+            int16_t B0 = Y0 + ((1814 * U_bias) &gt;&gt; 10);
+
+            // 限制到有效范围[0,255]
+            R0 = (R0 &lt; 0) ? 0 : ((R0 &gt; 255) ? 255 : R0);
+            G0 = (G0 &lt; 0) ? 0 : ((G0 &gt; 255) ? 255 : G0);
+            B0 = (B0 &lt; 0) ? 0 : ((B0 &gt; 255) ? 255 : B0);
+
+            // 打包为RGB565格式：{r[4:0],g[5:0],b[4:0]}
+            uint16_t rgb565_0 = ((R0 &amp; 0xF8) &lt;&lt; 8) | ((G0 &amp; 0xFC) &lt;&lt; 3) | (B0 &gt;&gt; 3);
+            // st7789 需要字节交换
+            *pDst++           = (rgb565_0 &lt;&lt; 8) | (rgb565_0 &gt;&gt; 8);
+
+            // 转换第二个像素 (Y1UV)
+            int16_t R1 = Y1 + ((1436 * V_bias) &gt;&gt; 10);
+            int16_t G1 = Y1 - ((352 * U_bias + 731 * V_bias) &gt;&gt; 10);
+            int16_t B1 = Y1 + ((1814 * U_bias) &gt;&gt; 10);
+
+            // 限制到有效范围[0,255]
+            R1 = (R1 &lt; 0) ? 0 : ((R1 &gt; 255) ? 255 : R1);
+            G1 = (G1 &lt; 0) ? 0 : ((G1 &gt; 255) ? 255 : G1);
+            B1 = (B1 &lt; 0) ? 0 : ((B1 &gt; 255) ? 255 : B1);
+
+            // 打包为RGB565格式
+            uint16_t rgb565_1 = ((R1 &amp; 0xF8) &lt;&lt; 8) | ((G1 &amp; 0xFC) &lt;&lt; 3) | (B1 &gt;&gt; 3);
+            // st7789 需要字节交换
+            *pDst++           = (rgb565_1 &lt;&lt; 8) | (rgb565_1 &gt;&gt; 8);
+        }
+
+        // 如果宽度是奇数，处理最后一个像素
+        if (xsize &amp; 1) {
+            // 读取最后的YUYV数据，但只处理一个像素
+            uint8_t Y0 = *pSrc++;
+            uint8_t U  = *pSrc++;
+            pSrc += 2; // 跳过Y1和V，因为只需要一个像素
+
+            int16_t U_bias = U - 128;
+            // 对于奇数像素，假设V值与U相同或使用上一行的V值
+            int16_t V_bias = U_bias;
+
+            int16_t R0 = Y0 + ((1436 * V_bias) &gt;&gt; 10);
+            int16_t G0 = Y0 - ((352 * U_bias + 731 * V_bias) &gt;&gt; 10);
+            int16_t B0 = Y0 + ((1814 * U_bias) &gt;&gt; 10);
+
+            R0 = (R0 &lt; 0) ? 0 : ((R0 &gt; 255) ? 255 : R0);
+            G0 = (G0 &lt; 0) ? 0 : ((G0 &gt; 255) ? 255 : G0);
+            B0 = (B0 &lt; 0) ? 0 : ((B0 &gt; 255) ? 255 : B0);
+
+            uint16_t rgb565_0 = ((R0 &amp; 0xF8) &lt;&lt; 8) | ((G0 &amp; 0xFC) &lt;&lt; 3) | (B0 &gt;&gt; 3);
+            // st7789 需要字节交换
+            *pDst++           = (rgb565_0 &lt;&lt; 8) | (rgb565_0 &gt;&gt; 8);
+        }
+    }
+}
 
 $declare ${AOs::UVC}
-
 $define ${AOs::AO_UVC}
 $define ${AOs::UVC_ctor}
 $define ${AOs::UVC}</text>

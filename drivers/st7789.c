@@ -144,6 +144,8 @@ static void st7789_set_address_window(uint16_t x0, uint16_t y0, uint16_t x1, uin
  * @brief Initialize ST7789 controller
  * @param none
  * @return none
+ * @details recommand use hard chip select,
+ * avoid high clock error like blurred screen.
  */
 void st7789_init(void)
 {

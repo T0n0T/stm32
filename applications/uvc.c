@@ -44,8 +44,131 @@
 #include "st7789.h"
 
 extern DMA2D_HandleTypeDef hdma2d;
-// SRAM_SET_RAM_D1 uint8_t disp[240 * 320 / 2];
-SRAM_SET_RAM_D1 uint8_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+SRAM_SET_RAM_D1 uint32_t disp[240 * 320 / 2];
+SRAM_SET_RAM_D1 uint32_t camera_buffer[240 * 320 / 2]; // 240x320 RGB565
+
+/**
+ * @brief  DMA2D conversion from YCbCr (video output) to RGB (Display frame buffer)
+ * @param  Src : Source buffer pointer
+ * @param  Dst : Destination buffer pointer
+ * @param  xsize: Horizontal size of the frame buffer
+ * @param  ysize: Vertical size of the frame buffer
+ * @retval None
+ */
+void dma2d_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t ysize)
+{
+    uint32_t inputLineOffset = 0;
+    uint32_t regValue, regMask;
+
+    inputLineOffset = xsize % 16;
+    if (inputLineOffset != 0) {
+        inputLineOffset = 16 - inputLineOffset;
+    }
+
+    regValue = DMA2D_INPUT_YCBCR | (DMA2D_REPLACE_ALPHA << 16) |
+               (DMA2D_REGULAR_ALPHA << 20) |
+               (DMA2D_RB_REGULAR << 21) |
+               (0xFFU << 24) |
+               (DMA2D_CSS_422 << 18);
+
+    regMask = DMA2D_BGPFCCR_CM | DMA2D_BGPFCCR_AM | DMA2D_BGPFCCR_ALPHA | DMA2D_BGPFCCR_AI | DMA2D_BGPFCCR_RBS | DMA2D_FGPFCCR_CSS;
+
+    /* Setup DMA2D Configuration */
+    DMA2D->CR     = 0x00010000UL | (1 << 9);
+    DMA2D->OPFCCR = DMA2D_OUTPUT_RGB565;
+    DMA2D->OOR    = 240 - xsize;
+    DMA2D->OPFCCR |= (DMA2D_REGULAR_ALPHA << 20);
+    DMA2D->OPFCCR |= (DMA2D_RB_REGULAR << 21);
+    DMA2D->FGPFCCR |= (regMask & regValue);
+    DMA2D->FGOR  = inputLineOffset;
+    DMA2D->NLR   = (uint32_t)(xsize << 16) | (uint32_t)ysize;
+    DMA2D->OMAR  = (uint32_t)Dst;
+    DMA2D->FGMAR = (uint32_t)Src;
+
+    /* Enable the transfer complete, transfer error and configuration error interrupts */
+    DMA2D->CR |= DMA2D_IT_TC | DMA2D_IT_TE | DMA2D_IT_CE;
+
+    /* Enable the Peripheral */
+    DMA2D->CR |= DMA2D_CR_START;
+}
+
+void soft_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t ysize)
+{
+    uint8_t*  pSrc = (uint8_t*)Src;
+    uint16_t* pDst = (uint16_t*)Dst;
+
+    // 确保宽度是偶数，因为YUYV422格式每两个像素共享一个U和V
+    uint16_t width = (xsize >> 1) << 1;
+
+    for (uint16_t y = 0; y < ysize; y++) {
+        for (uint16_t x = 0; x < width; x += 2) {
+            // YUYV422格式：Y0 U Y1 V (4字节表示2个像素)
+            uint8_t Y0 = *pSrc++;
+            uint8_t U  = *pSrc++;
+            uint8_t Y1 = *pSrc++;
+            uint8_t V  = *pSrc++;
+
+            // 将U,V从[0,255]范围转换到[-128,127]
+            int16_t U_bias = U - 128;
+            int16_t V_bias = V - 128;
+
+            // 转换第一个像素 (Y0UV)
+            // 使用整数运算提高效率，乘法系数已经左移10位
+            int16_t R0 = Y0 + ((1436 * V_bias) >> 10);
+            int16_t G0 = Y0 - ((352 * U_bias + 731 * V_bias) >> 10);
+            int16_t B0 = Y0 + ((1814 * U_bias) >> 10);
+
+            // 限制到有效范围[0,255]
+            R0 = (R0 < 0) ? 0 : ((R0 > 255) ? 255 : R0);
+            G0 = (G0 < 0) ? 0 : ((G0 > 255) ? 255 : G0);
+            B0 = (B0 < 0) ? 0 : ((B0 > 255) ? 255 : B0);
+
+            // 打包为RGB565格式：{r[4:0],g[5:0],b[4:0]}
+            uint16_t rgb565_0 = ((R0 & 0xF8) << 8) | ((G0 & 0xFC) << 3) | (B0 >> 3);
+            // st7789 需要字节交换
+            *pDst++           = (rgb565_0 << 8) | (rgb565_0 >> 8);
+
+            // 转换第二个像素 (Y1UV)
+            int16_t R1 = Y1 + ((1436 * V_bias) >> 10);
+            int16_t G1 = Y1 - ((352 * U_bias + 731 * V_bias) >> 10);
+            int16_t B1 = Y1 + ((1814 * U_bias) >> 10);
+
+            // 限制到有效范围[0,255]
+            R1 = (R1 < 0) ? 0 : ((R1 > 255) ? 255 : R1);
+            G1 = (G1 < 0) ? 0 : ((G1 > 255) ? 255 : G1);
+            B1 = (B1 < 0) ? 0 : ((B1 > 255) ? 255 : B1);
+
+            // 打包为RGB565格式
+            uint16_t rgb565_1 = ((R1 & 0xF8) << 8) | ((G1 & 0xFC) << 3) | (B1 >> 3);
+            // st7789 需要字节交换
+            *pDst++           = (rgb565_1 << 8) | (rgb565_1 >> 8);
+        }
+
+        // 如果宽度是奇数，处理最后一个像素
+        if (xsize & 1) {
+            // 读取最后的YUYV数据，但只处理一个像素
+            uint8_t Y0 = *pSrc++;
+            uint8_t U  = *pSrc++;
+            pSrc += 2; // 跳过Y1和V，因为只需要一个像素
+
+            int16_t U_bias = U - 128;
+            // 对于奇数像素，假设V值与U相同或使用上一行的V值
+            int16_t V_bias = U_bias;
+
+            int16_t R0 = Y0 + ((1436 * V_bias) >> 10);
+            int16_t G0 = Y0 - ((352 * U_bias + 731 * V_bias) >> 10);
+            int16_t B0 = Y0 + ((1814 * U_bias) >> 10);
+
+            R0 = (R0 < 0) ? 0 : ((R0 > 255) ? 255 : R0);
+            G0 = (G0 < 0) ? 0 : ((G0 > 255) ? 255 : G0);
+            B0 = (B0 < 0) ? 0 : ((B0 > 255) ? 255 : B0);
+
+            uint16_t rgb565_0 = ((R0 & 0xF8) << 8) | ((G0 & 0xFC) << 3) | (B0 >> 3);
+            // st7789 需要字节交换
+            *pDst++           = (rgb565_0 << 8) | (rgb565_0 >> 8);
+        }
+    }
+}
 
 //$declare${AOs::UVC} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
@@ -68,7 +191,6 @@ static QState UVC_initial(UVC * const me, void const * const par);
 static QState UVC_normal(UVC * const me, QEvt const * const e);
 static QState UVC_busy(UVC * const me, QEvt const * const e);
 //$enddecl${AOs::UVC} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 //$skip${QP_VERSION} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // Check for the minimum required QP version
 #if (QP_VERSION < 730U) || (QP_VERSION != ((QP_RELEASE^4294967295U)%0x2710U))
@@ -99,7 +221,7 @@ UVC UVC_inst;
 static QState UVC_initial(UVC * const me, void const * const par) {
     //${AOs::UVC::SM::initial}
     (void)par; // unused parameter
-    camera_start((uint32_t)camera_buffer, sizeof(camera_buffer), 1);
+    camera_start((uint32_t)camera_buffer, sizeof(camera_buffer)/sizeof(uint32_t), 1);
     QTimeEvt_armX(&me->healthEvt, BSP_TICKS_PER_SEC/2, BSP_TICKS_PER_SEC/2);
 
     QS_FUN_DICTIONARY(&UVC_normal);
@@ -120,7 +242,8 @@ static QState UVC_normal(UVC * const me, QEvt const * const e) {
         }
         //${AOs::UVC::SM::normal::UVC_FRAME}
         case UVC_FRAME_SIG: {
-            st7789_draw_image(0, 0, 240, 320, (uint16_t*)camera_buffer);
+            soft_y422_to_rgb565(camera_buffer, disp, 240, 320);
+            st7789_draw_image(0, 0, 240, 320, (uint16_t*)disp);
             status_ = Q_HANDLED();
             // HAL_DMA2D_Start_IT(&hdma2d, (uint32_t)camera_buffer, (uint32_t)disp, 240, 320);
             // status_ = Q_TRAN(&UVC_busy);
@@ -140,7 +263,7 @@ static QState UVC_busy(UVC * const me, QEvt const * const e) {
     switch (e->sig) {
         //${AOs::UVC::SM::normal::busy::UVC_PFC}
         case UVC_PFC_SIG: {
-            // st7789_draw_image(0, 0, 240, 320, (uint16_t*)disp);
+            st7789_draw_image(0, 0, 240, 320, (uint16_t*)disp);
             status_ = Q_TRAN(&UVC_normal);
             break;
         }

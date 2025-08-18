@@ -15,13 +15,17 @@ static i2c_soft_t i2c_soft_ins[I2C_SOFT_MAX] = {
 // 延迟函数，用于控制I2C时序
 static void i2c_soft_delay(void)
 {
-    uint32_t start = DWT->CYCCNT;
-    // 假设系统时钟为480MHz，延时约5微秒 (480 cycles per microsecond * 5 microseconds = 2400 cycles)
-    // 可根据实际系统时钟频率调整
-    uint32_t delay_cycles = 800;
-    while ((DWT->CYCCNT - start) < delay_cycles) {
+    volatile uint32_t i = 0;
+    for (i = 0; i < 45; i++) {
         __NOP();
     }
+    // uint32_t start = DWT->CYCCNT;
+    // // 假设系统时钟为480MHz，延时约5微秒 (480 cycles per microsecond * 5 microseconds = 2400 cycles)
+    // // 可根据实际系统时钟频率调整
+    // uint32_t delay_cycles = 800;
+    // while ((DWT->CYCCNT - start) < delay_cycles) {
+    //     __NOP();
+    // }
 }
 
 // 配置SDA为输出
@@ -32,7 +36,7 @@ static void i2c_soft_sda_out(i2c_soft_t* config)
     GPIO_InitStruct.Pin   = config->sda_pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_OD; // 开漏输出
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(config->sda_port, &GPIO_InitStruct);
 }
 
@@ -44,7 +48,7 @@ static void i2c_soft_scl_out(i2c_soft_t* config)
     GPIO_InitStruct.Pin   = config->scl_pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_OD; // 开漏输出
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(config->scl_port, &GPIO_InitStruct);
 }
 

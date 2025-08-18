@@ -166,6 +166,7 @@ void camera_set_polarity(uint8_t pclk_polarity, uint8_t href_polarity,
 void camera_set_resolution(uint8_t resolution)
 {
     camera_ins.resolution = resolution;
+    ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0X03);
     switch (resolution) {
         case OV5640_R160x120: // 160x120
             ov5640_write_reg16_byte(OV5640_TIMING_DVPHO_HIGH, 0x00);
@@ -217,6 +218,9 @@ void camera_set_resolution(uint8_t resolution)
         default:
             break;
     }
+    ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0X13);
+    ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0Xa3);
+
     ov5640_write_reg16_byte(OV5640_SC_PLL_CONTRL1, 0x11);     // PLL
     ov5640_write_reg16_byte(OV5640_SC_PLL_CONTRL2, 0x46);     // PLL
     ov5640_write_reg16_byte(OV5640_LIGHTMETER1_TH_LOW, 0x08); // light meter 1 threshold [7:0]
@@ -496,8 +500,6 @@ void camera_init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(OV5640_PWDN_PORT, &GPIO_InitStruct);
 
-    GPIO_SET_PIN(OV5640_PWDN_PORT, OV5640_PWDN_PIN);
-    OV5640_DELAY_MS(20);
     GPIO_RESET_PIN(OV5640_PWDN_PORT, OV5640_PWDN_PIN);
     OV5640_DELAY_MS(20);
 
@@ -745,18 +747,9 @@ void camera_init(void)
     }
     camera_enable_mode(OV5640_DVP_MODE);
     camera_set_resolution(OV5640_R640x480);
-    camera_set_format(OV5640_RGB565);
+    camera_set_format(OV5640_YUV422);
     camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
                         OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
-    // ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0X03); // 开始 group 3 的配置
-
-    // ov5640_write_reg16_byte(OV5640_TIMING_DVPHO_HIGH, 440 >> 8); // DVPHO，设置输出水平尺寸
-    // ov5640_write_reg16_byte(OV5640_TIMING_DVPHO_LOW, 440 & 0xff);
-    // ov5640_write_reg16_byte(OV5640_TIMING_DVPVO_HIGH, 330 >> 8); // DVPVO，设置输出垂直尺寸
-    // ov5640_write_reg16_byte(OV5640_TIMING_DVPVO_LOW, 330 & 0xff);
-
-    // ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0X13); // 结束配置
-    // ov5640_write_reg16_byte(OV5640_SRM_GROUP_ACCESS, 0Xa3); // 启用设置
     camera_crop(240, 320);
 }
 

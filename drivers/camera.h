@@ -687,7 +687,7 @@
 #define OV5640_RGB888                       0x01U /* Pixel Format RGB888        */
 #define OV5640_YUV422                       0x02U /* Pixel Format YUV422        */
 #define OV5640_Y8                           0x08U /* Pixel Format Y8            */
-#define OV5640_JPEG                         0x10U /* Compressed format JPEG          */
+#define OV5640_JPEG                         0x10U /* Compressed format JPEG     */
 
 /* Polarity */
 #define OV5640_POLARITY_PCLK_LOW            0x00U /* Signal Active Low          */

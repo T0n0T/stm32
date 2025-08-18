@@ -100,9 +100,10 @@ void BSP_init(void)
     st7789_init();
     i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
     camera_init();             // Initialize Camera
-    extern void MX_DMA2D_Init(void);
-    MX_DMA2D_Init();
+    // extern void MX_DMA2D_Init(void);
+    // MX_DMA2D_Init();
     extern DMA2D_HandleTypeDef hdma2d;
+    hdma2d.Instance         = DMA2D;
     hdma2d.XferCpltCallback = pfc_callback;
     // st7789_test();
     // lptimer_init();
@@ -162,11 +163,11 @@ static void pfc_callback(DMA2D_HandleTypeDef* hdma2d)
     QACTIVE_POST_X(AO_UVC, &uvc_pfc_evt, 4, 0U);
 }
 
-void HAL_Delay(uint32_t Delay)
-{
-    uint32_t target_cycle = Delay * (SystemCoreClock / 1000);
-    DWT->CYCCNT = 0;
-    while (DWT->CYCCNT < target_cycle) {
-        __NOP();
-    }
-}
+// void HAL_Delay(uint32_t Delay)
+// {
+//     uint32_t target_cycle = Delay * (SystemCoreClock / 1000);
+//     DWT->CYCCNT = 0;
+//     while (DWT->CYCCNT < target_cycle) {
+//         __NOP();
+//     }
+// }
