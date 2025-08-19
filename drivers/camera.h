@@ -816,6 +816,7 @@ void camera_set_exposure_compensation(uint8_t level);
 void camera_set_lightmode(uint8_t mode);
 void camera_set_nightmode(uint8_t mode);
 void camera_set_resolution(uint8_t resolution);
+uint32_t camera_get_jpeg_length(void);
 
 static const uint16_t OV5640_INIT_Config[][2] =
     {

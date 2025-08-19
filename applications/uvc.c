@@ -42,9 +42,11 @@
 #include "led.h"
 #include "camera.h"
 #include "st7789.h"
+#include "encode.h"
 
 extern DMA2D_HandleTypeDef hdma2d;
-SRAM_SET_RAM_D1 uint32_t   disp[240 * 320 / 2];
+uint8_t                    jpeg_buffer[240 * 3];
+SRAM_SET_RAM_D1 uint8_t    disp[240 * 320 / 2];
 SRAM_SET_RAM_D1 uint32_t   camera_buffer[240 * 320 / 2]; // 240x320 RGB565
 
 /**
@@ -92,43 +94,73 @@ void dma2d_y422_to_rgb565(uint32_t* Src, uint32_t* Dst, uint16_t xsize, uint16_t
     DMA2D->CR |= DMA2D_CR_START;
 }
 
-void DMA2D_Copy_YCbCr_To_RGB_v(uint32_t* pSrc, uint32_t* pDst,
-                               uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize)
+void dma2d_yuv422_to_rgb565(uint32_t* pSrc,
+                            uint32_t* pDst,
+                            uint16_t  x,
+                            uint16_t  y,
+                            uint16_t  xsize,
+                            uint16_t  ysize)
 {
-    uint32_t ss01; // 转换c数
-    uint32_t s24x;
+    uint32_t cssMode = DMA2D_CSS_422;
 
-    uint32_t cssMode         = 0;
-    uint32_t inputLineOffset = 0;
-    uint32_t destination     = 0;
+    // DMA2D基于8x8像素块处理，需要分块转换
+    const uint16_t block_size = 8;
 
-    cssMode         = DMA2D_CSS_422;
-    s24x            = 32;
-    inputLineOffset = xsize % 16;
-    if (inputLineOffset != 0) {
-        inputLineOffset = 16 - inputLineOffset;
-    }
+    for (uint16_t block_y = 0; block_y < ysize; block_y += block_size) {
+        for (uint16_t block_x = 0; block_x < xsize; block_x += block_size) {
+            // 计算当前块的实际尺寸（处理边界情况）
+            uint16_t current_width  = (block_x + block_size <= xsize) ? block_size : (xsize - block_x);
+            uint16_t current_height = (block_y + block_size <= ysize) ? block_size : (ysize - block_y);
 
-    ss01 = ysize / 16; // 下次转换增加地址
+            // 计算源和目标地址偏移
+            // YUV422格式每个像素2字节，但按32位访问所以除以2
+            uint32_t* src_block = pSrc + (block_y * xsize + block_x) / 2;
+            uint32_t* dst_block = pDst + (block_y * xsize + block_x) / 2;
 
-    while (ss01--) {
-        // 输出地址，乘以2的对RGB565，如果输出格式是ARGB8888，需要乘以4
-        destination = (uint32_t)pDst + ((y * 240) + x) * 2 + 240 * 32 * ss01;
+            // 计算输入行偏移（跳过当前块之外的像素）
+            uint32_t input_line_offset = xsize - current_width;
+            // YUV422转换时需要16字节对齐，所以计算16字节对齐的偏移
+            uint32_t aligned_offset = input_line_offset % 16;
+            if (aligned_offset != 0) {
+                aligned_offset = 16 - aligned_offset;
+            }
 
-        DMA2D->CR  = 0x00010000UL | (1 << 9);
-        DMA2D->OOR = 240 - xsize;
+            // 计算输出行偏移
+            uint32_t output_line_offset = xsize - current_width;
 
-        DMA2D->OPFCCR  = DMA2D_OUTPUT_RGB565 | (DMA2D_REGULAR_ALPHA << 20) | (DMA2D_RB_REGULAR << 21);
-        DMA2D->FGPFCCR = DMA2D_INPUT_YCBCR | (DMA2D_REPLACE_ALPHA << 16) | (DMA2D_REGULAR_ALPHA << 20) | (DMA2D_RB_REGULAR << 21) | (0xFFU << 24) | (cssMode << 18);
-        DMA2D->FGOR    = inputLineOffset;
-        DMA2D->NLR     = (uint32_t)(xsize << 16) | 16; // 每次转换16行
+            /* 等待DMA2D空闲 */
+            while (DMA2D->CR & DMA2D_CR_START) {}
 
-        DMA2D->OMAR = (uint32_t)destination;
+            /* DMA2D采用存储器到存储器模式，并且执行FPC颜色格式转换 */
+            DMA2D->CR = 0x00010000UL | (1 << 9);
 
-        DMA2D->FGMAR = (uint32_t)pSrc + (xsize + inputLineOffset) * s24x * ss01;
+            /* 输出行偏移 */
+            DMA2D->OOR = output_line_offset;
 
-        DMA2D->CR |= DMA2D_CR_START;
-        while (DMA2D->CR & DMA2D_CR_START) {}
+            /* 输出格式：RGB565 */
+            DMA2D->OPFCCR = DMA2D_OUTPUT_RGB565 | (DMA2D_REGULAR_ALPHA << 20) | (DMA2D_RB_REGULAR << 21);
+
+            /* 前景层输入格式：YUV422 */
+            DMA2D->FGPFCCR = DMA2D_INPUT_YCBCR | (DMA2D_REPLACE_ALPHA << 16) |
+                             (DMA2D_REGULAR_ALPHA << 20) | (DMA2D_RB_REGULAR << 21) |
+                             (0xFFU << 24) | (cssMode << 18);
+
+            /* 前景层输入行偏移 */
+            DMA2D->FGOR = input_line_offset;
+
+            /* 传输尺寸：宽度x高度 */
+            DMA2D->NLR = (uint32_t)(current_width << 16) | (uint16_t)current_height;
+
+            /* 目标和源地址 */
+            DMA2D->OMAR  = (uint32_t)dst_block;
+            DMA2D->FGMAR = (uint32_t)src_block;
+
+            /* 启动传输 */
+            DMA2D->CR |= DMA2D_CR_START;
+
+            /* 等待当前块传输完成 */
+            while (DMA2D->CR & DMA2D_CR_START) {}
+        }
     }
 }
 
@@ -265,7 +297,10 @@ static QState UVC_initial(UVC* const me, void const* const par)
     (void)par; // unused parameter
     camera_start((uint32_t)camera_buffer, sizeof(camera_buffer) / sizeof(uint32_t), 1);
     QTimeEvt_armX(&me->healthEvt, BSP_TICKS_PER_SEC / 2, BSP_TICKS_PER_SEC / 2);
-
+    __HAL_RCC_DMA2D_CLK_ENABLE();
+    /* DMA2D interrupt Init */
+    HAL_NVIC_SetPriority(DMA2D_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA2D_IRQn);
     QS_FUN_DICTIONARY(&UVC_normal);
     QS_FUN_DICTIONARY(&UVC_busy);
 
@@ -285,9 +320,19 @@ static QState UVC_normal(UVC* const me, QEvt const* const e)
         }
         //${AOs::UVC::SM::normal::UVC_FRAME}
         case UVC_FRAME_SIG: {
-            soft_y422_to_rgb565(camera_buffer, disp, 240, 320);
-            // DMA2D_Copy_YCbCr_To_RGB_v(camera_buffer, disp, 240, 320, 240, 320);
-            st7789_draw_image(0, 0, 240, 320, (uint16_t*)disp);
+            // soft_y422_to_rgb565(camera_buffer, disp, 240, 320);
+            // dma2d_yuv422_to_rgb565(camera_buffer, disp, 240, 320, 240, 320);
+            uint32_t outsize;
+            jpeg_encode((uint8_t*)camera_buffer,
+                        sizeof(camera_buffer),
+                        disp,
+                        &outsize,
+                        240,
+                        320,
+                        80,
+                        jpeg_buffer);
+            st7789_draw_image(0, 0, 240, 320, (uint16_t*)camera_buffer);
+
             status_ = Q_HANDLED();
             // HAL_DMA2D_Start_IT(&hdma2d, (uint32_t)camera_buffer, (uint32_t)disp, 240, 320);
             // status_ = Q_TRAN(&UVC_busy);

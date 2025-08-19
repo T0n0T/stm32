@@ -54,11 +54,15 @@ subdir('drivers')
 subdir('middlewares/qpc')
 subdir('middlewares/cm_backtrace')
 subdir('middlewares/easylogger')
+subdir('middlewares/libjpeg')
+
 subdir('middlewares/MultiButton')
 subdir('middlewares/trace')
 
 appdep_incdirs = []
 appdep_sources = []
+appdep_incdirs += libjpeg_incs
+appdep_sources += libjpeg_srcs
 # appdep_incdirs += log_incs
 # appdep_sources += log_srcs
 if get_option('buildtype').startswith('debug')

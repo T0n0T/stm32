@@ -51,6 +51,23 @@ static inline uint8_t ov5640_read_reg16_byte(uint16_t reg)
     return data;
 }
 
+/**
+ * @brief  Read JPEG data length from OV5640 registers
+ * @retval JPEG data length
+ */
+uint32_t camera_get_jpeg_length(void)
+{
+    uint32_t length = 0;
+    
+    // Read JPEG length from registers
+    // The length is stored in 3 bytes: BYTE3, BYTE2, BYTE1
+    length |= ((uint32_t)ov5640_read_reg16_byte(OV5640_JPEG_LENGTH_BYTE3)) << 16;
+    length |= ((uint32_t)ov5640_read_reg16_byte(OV5640_JPEG_LENGTH_BYTE2)) << 8;
+    length |= ((uint32_t)ov5640_read_reg16_byte(OV5640_JPEG_LENGTH_BYTE1));
+    
+    return length;
+}
+
 static inline void ov5640_write_reg16_bytes(uint16_t reg, uint8_t* data,
                                             uint8_t len)
 {
@@ -76,14 +93,15 @@ static uint16_t camera_read_id(void)
 
 void camera_start(uint32_t buffer_address, uint32_t buffer_size, uint8_t is_predictive)
 {
-    // HAL_DCMI_Resume(&hdcmi);
     // HAL_DMA_DeInit(&hdma_dcmi);
     // HAL_DMA_Init(&hdma_dcmi);
+    HAL_DCMI_Resume(&hdcmi);
 
     if (is_predictive) {
         HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_CONTINUOUS, buffer_address,
                            buffer_size);
     } else {
+        __HAL_DCMI_ENABLE_IT(&hdcmi, DCMI_IT_FRAME);
         HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_SNAPSHOT, buffer_address,
                            buffer_size);
     }
@@ -489,7 +507,7 @@ void camera_init(void)
     extern void MX_DCMI_Init(void);
     MX_DCMI_Init();
 
-    // __HAL_DCMI_ENABLE_IT(&hdcmi, DCMI_IT_FRAME);
+    __HAL_DCMI_ENABLE_IT(&hdcmi, DCMI_IT_FRAME);
 #define OV5640_PWDN_PORT GPIOF
 #define OV5640_PWDN_PIN  GPIO_PIN_13
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -747,7 +765,7 @@ void camera_init(void)
     }
     camera_enable_mode(OV5640_DVP_MODE);
     camera_set_resolution(OV5640_R640x480);
-    camera_set_format(OV5640_YUV422);
+    camera_set_format(OV5640_RGB565);
     camera_set_polarity(OV5640_POLARITY_PCLK_HIGH, OV5640_POLARITY_HREF_LOW,
                         OV5640_POLARITY_VSYNC_LOW); // PCLK, HREF, VSYNC polarity
     camera_crop(240, 320);

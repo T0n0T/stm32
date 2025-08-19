@@ -13,4 +13,6 @@ applications_sources = files(
   'bsp.c',
   'uvc.c',
   'io.c',
+  'decode.c',
+  'encode.c',
 )

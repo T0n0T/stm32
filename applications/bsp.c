@@ -107,6 +107,7 @@ void BSP_init(void)
     hdma2d.XferCpltCallback = pfc_callback;
     // lptimer_init();
     // wakeup_init(wakeup_handle);
+
 }
 
 void BSP_start(void)
