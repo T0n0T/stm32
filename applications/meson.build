@@ -15,4 +15,5 @@ applications_sources = files(
   'io.c',
   'decode.c',
   'encode.c',
+  'video_static_mjpeg.c',
 )

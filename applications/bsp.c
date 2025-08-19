@@ -100,6 +100,9 @@ void BSP_init(void)
     st7789_init();
     i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
     camera_init();             // Initialize Camera
+
+    extern void video_init(uint8_t busid, uintptr_t reg_base);
+    video_init(0, (uintptr_t)USB1_OTG_HS);
     // extern void MX_DMA2D_Init(void);
     // MX_DMA2D_Init();
     extern DMA2D_HandleTypeDef hdma2d;
@@ -107,7 +110,6 @@ void BSP_init(void)
     hdma2d.XferCpltCallback = pfc_callback;
     // lptimer_init();
     // wakeup_init(wakeup_handle);
-
 }
 
 void BSP_start(void)
