@@ -62,6 +62,7 @@ extern LPTIM_HandleTypeDef hlptim1;
 extern DMA_HandleTypeDef hdma_spi6_tx;
 extern SPI_HandleTypeDef hspi6;
 extern DMA_HandleTypeDef hdma_usart1_tx;
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -231,6 +232,20 @@ void DMA1_Stream1_IRQHandler(void)
 
   /* USER CODE END DMA1_Stream1_IRQn 1 */
 }
+
+/**
+  * @brief This function handles USB On The Go HS global interrupt.
+  */
+// void OTG_HS_IRQHandler(void)
+// {
+//   /* USER CODE BEGIN OTG_HS_IRQn 0 */
+
+//   /* USER CODE END OTG_HS_IRQn 0 */
+//   HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
+//   /* USER CODE BEGIN OTG_HS_IRQn 1 */
+
+//   /* USER CODE END OTG_HS_IRQn 1 */
+// }
 
 /**
   * @brief This function handles DCMI and PSSI global interrupt.

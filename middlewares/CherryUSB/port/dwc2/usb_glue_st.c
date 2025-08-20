@@ -274,8 +274,8 @@ const struct dwc2_user_params param_pb14_pb15 = {
     .host_nperio_tx_fifo_size = 128, // 512 byte
     .host_perio_tx_fifo_size = 256,  // 1024 byte
 #if defined(STM32F722xx) || defined(STM32F723xx) || defined(STM32F730xx) || defined(STM32F732xx) || defined(STM32F733xx)
-    .device_gccfg = (1 << 23),       // USB_OTG_GCCFG_PHYHSEN
-    .host_gccfg = (1 << 23),         // USB_OTG_GCCFG_PHYHSEN
+    .device_gccfg = (1 << 23), // USB_OTG_GCCFG_PHYHSEN
+    .host_gccfg = (1 << 23),   // USB_OTG_GCCFG_PHYHSEN
 #else
 #ifdef CONFIG_USB_HS
     .device_gccfg = 0,
@@ -634,6 +634,20 @@ void usb_dc_low_level_init(uint8_t busid)
     }
 
     g_dwc2_instance.Instance = (USB_OTG_GlobalTypeDef *)g_usbdev_bus[busid].reg_base;
+
+    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**USART1 GPIO Configuration
+    PA11     ------> USB_DM
+    PA12     ------> USB_DP
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF10_OTG1_FS;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
     HAL_PCD_MspInit((PCD_HandleTypeDef *)&g_dwc2_instance);
 
 #if defined(STM32F722xx) || defined(STM32F723xx) || defined(STM32F730xx) || defined(STM32F732xx) || defined(STM32F733xx)
@@ -653,6 +667,7 @@ void usb_dc_low_level_deinit(uint8_t busid)
 
     g_dwc2_instance.Instance = (USB_OTG_GlobalTypeDef *)g_usbdev_bus[busid].reg_base;
     HAL_PCD_MspDeInit((PCD_HandleTypeDef *)&g_dwc2_instance);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11 | GPIO_PIN_12);
 }
 #endif
 
@@ -694,8 +709,8 @@ void usb_hc_low_level_deinit(struct usbh_bus *bus)
 void dwc2_get_user_params(uint32_t reg_base, struct dwc2_user_params *params)
 {
     if (reg_base == 0x40040000UL) { // USB_OTG_HS_PERIPH_BASE
-        memcpy(params, &param_pb14_pb15, sizeof(struct dwc2_user_params));
-    } else {
+        //     memcpy(params, &param_pb14_pb15, sizeof(struct dwc2_user_params));
+        // } else {
         memcpy(params, &param_pa11_pa12, sizeof(struct dwc2_user_params));
     }
 #ifdef CONFIG_USB_DWC2_CUSTOM_FIFO
@@ -704,8 +719,7 @@ void dwc2_get_user_params(uint32_t reg_base, struct dwc2_user_params *params)
     dwc2_get_user_fifo_config(reg_base, &s_dwc2_fifo_config);
 
     params->device_rx_fifo_size = s_dwc2_fifo_config.device_rx_fifo_size;
-    for (uint8_t i = 0; i < MAX_EPS_CHANNELS; i++)
-    {
+    for (uint8_t i = 0; i < MAX_EPS_CHANNELS; i++) {
         params->device_tx_fifo_size[i] = s_dwc2_fifo_config.device_tx_fifo_size[i];
     }
 #endif

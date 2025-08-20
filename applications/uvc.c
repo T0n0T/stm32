@@ -331,6 +331,11 @@ static QState UVC_normal(UVC* const me, QEvt const* const e)
                         320,
                         80,
                         jpeg_buffer);
+            extern void video_mjpeg_write(uint8_t busid, uint8_t* buffer, uint32_t size);
+            video_mjpeg_write(
+                0,
+                disp,
+                outsize);
             st7789_draw_image(0, 0, 240, 320, (uint16_t*)camera_buffer);
 
             status_ = Q_HANDLED();

@@ -101,8 +101,13 @@ void BSP_init(void)
     i2c_soft_init(I2C_SOFT_1); // Initialize I2C Soft
     camera_init();             // Initialize Camera
 
+    extern void cdc_acm_init(uint8_t busid, uintptr_t reg_base);
     extern void video_init(uint8_t busid, uintptr_t reg_base);
+    extern void video_test(uint8_t busid);
     video_init(0, (uintptr_t)USB1_OTG_HS);
+    // cdc_acm_init(0, (uintptr_t)USB1_OTG_HS);
+    // video_test(0);
+
     // extern void MX_DMA2D_Init(void);
     // MX_DMA2D_Init();
     extern DMA2D_HandleTypeDef hdma2d;

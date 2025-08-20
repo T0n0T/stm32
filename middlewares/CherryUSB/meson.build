@@ -26,7 +26,7 @@ cherryusb_srcs = files(
   # 'class/aoa/usbh_aoa.c',
   # 'class/audio/usbd_audio.c',
   # 'class/audio/usbh_audio.c',
-  # 'class/cdc/usbd_cdc_acm.c',
+  'class/cdc/usbd_cdc_acm.c',
   # 'class/cdc/usbd_cdc_ecm.c',
   # 'class/cdc/usbh_cdc_acm.c',
   # 'class/cdc/usbh_cdc_ecm.c',
