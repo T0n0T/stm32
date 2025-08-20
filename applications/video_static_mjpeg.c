@@ -24,8 +24,8 @@
 #define VIDEO_PACKET_SIZE (unsigned int)(((MAX_PAYLOAD_SIZE / 1)) | (0x00 << 11))
 #endif
 
-#define WIDTH              (unsigned int)(640)
-#define HEIGHT             (unsigned int)(480)
+#define WIDTH              (unsigned int)(240)
+#define HEIGHT             (unsigned int)(320)
 
 #define CAM_FPS            (30)
 #define INTERVAL           (unsigned long)(10000000 / CAM_FPS)
