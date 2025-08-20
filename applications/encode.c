@@ -92,6 +92,8 @@ void jpeg_encode(uint8_t* inbuf, uint32_t insize,
         for (uint32_t i = 0; i < width; i++) {
             uint16_t rgb565_pixel = rgb565_line[i];
             /* Extract RGB565 components */
+            rgb565_pixel = __REVSH(rgb565_pixel);
+
             uint8_t r = (rgb565_pixel >> 11) & 0x1F;
             uint8_t g = (rgb565_pixel >> 5) & 0x3F;
             uint8_t b = rgb565_pixel & 0x1F;

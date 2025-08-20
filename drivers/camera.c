@@ -277,7 +277,7 @@ void camera_set_format(uint8_t format)
 {
     switch (format) {
         case OV5640_RGB565:
-            ov5640_write_reg16_byte(OV5640_FORMAT_CTRL00, 0x6f);
+            ov5640_write_reg16_byte(OV5640_FORMAT_CTRL00, 0x61);
             OV5640_DELAY_MS(1);
             ov5640_write_reg16_byte(OV5640_FORMAT_MUX_CTRL, 0x01);
             OV5640_DELAY_MS(1);
